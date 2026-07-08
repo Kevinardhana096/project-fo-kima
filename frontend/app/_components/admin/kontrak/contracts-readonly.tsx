@@ -144,85 +144,85 @@ export function ContractsReadonly() {
             <table className="fo-table fo-contract-table">
               <thead>
                 <tr>
-                  <th className="fo-table-col-no">No</th>
-                  <th className="fo-table-col-action-lite">Aksi</th>
-                  <th className="fo-table-col-medium">Kategori</th>
-                  <th className="fo-table-col-contract-id">ID Kontrak Sebelumnya</th>
-                  <th className="fo-table-col-code">Kode Pelanggan</th>
-                  <th className="fo-table-col-name">Nama Pelanggan</th>
-                  <th className="fo-table-col-location">Lokasi</th>
-                  <th className="fo-table-col-time">Sisa Waktu</th>
-                  <th className="fo-table-col-date">Periode Awal</th>
-                  <th className="fo-table-col-duration">Durasi Kontrak</th>
-                  <th className="fo-table-col-date">Periode Berakhir</th>
-                  <th className="fo-table-col-contract-doc">No Kontrak</th>
-                  <th className="fo-table-col-medium">Core</th>
-                  <th className="fo-table-col-medium">Sharing Core</th>
-                  <th className="fo-table-col-currency">Nilai Kontrak</th>
-                  <th className="fo-table-col-currency">Biaya Aktivasi</th>
-                  <th className="fo-table-col-currency">Perbulan</th>
-                  <th className="fo-table-col-currency">Nilai Periode Aktif</th>
-                  <th className="fo-table-col-status">Status Kontrak</th>
-                  <th className="fo-table-col-link">Berkas</th>
-                  <th className="fo-table-col-medium">Billing</th>
-                  <th className="fo-table-col-remarks">Keterangan</th>
+                  <th className="fo-table-col-no"><span className="fo-table-head-label">No</span></th>
+                  <th className="fo-table-col-action-lite"><span className="fo-table-head-label">Aksi</span></th>
+                  <th className="fo-table-col-medium"><span className="fo-table-head-label">Kategori</span></th>
+                  <th className="fo-table-col-contract-id"><span className="fo-table-head-label">ID Kontrak Sebelumnya</span></th>
+                  <th className="fo-table-col-code"><span className="fo-table-head-label">Kode Pelanggan</span></th>
+                  <th className="fo-table-col-name"><span className="fo-table-head-label">Nama Pelanggan</span></th>
+                  <th className="fo-table-col-location"><span className="fo-table-head-label">Lokasi</span></th>
+                  <th className="fo-table-col-time"><span className="fo-table-head-label">Sisa Waktu</span></th>
+                  <th className="fo-table-col-date"><span className="fo-table-head-label">Periode Awal</span></th>
+                  <th className="fo-table-col-duration"><span className="fo-table-head-label">Durasi Kontrak</span></th>
+                  <th className="fo-table-col-date"><span className="fo-table-head-label">Periode Berakhir</span></th>
+                  <th className="fo-table-col-contract-doc"><span className="fo-table-head-label">No Kontrak</span></th>
+                  <th className="fo-table-col-medium"><span className="fo-table-head-label">Core</span></th>
+                  <th className="fo-table-col-medium"><span className="fo-table-head-label">Sharing Core</span></th>
+                  <th className="fo-table-col-currency"><span className="fo-table-head-label">Nilai Kontrak</span></th>
+                  <th className="fo-table-col-currency"><span className="fo-table-head-label">Biaya Aktivasi</span></th>
+                  <th className="fo-table-col-currency"><span className="fo-table-head-label">Perbulan</span></th>
+                  <th className="fo-table-col-currency"><span className="fo-table-head-label">Nilai Periode Aktif</span></th>
+                  <th className="fo-table-col-status"><span className="fo-table-head-label">Status Kontrak</span></th>
+                  <th className="fo-table-col-link"><span className="fo-table-head-label">Berkas</span></th>
+                  <th className="fo-table-col-medium"><span className="fo-table-head-label">Billing</span></th>
+                  <th className="fo-table-col-remarks"><span className="fo-table-head-label">Keterangan</span></th>
                 </tr>
               </thead>
               <tbody>
                 {filteredContracts.map((contract) => (
                   <tr key={contract.id}>
                     <td className="fo-table-col-no">{contract.no}</td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-action">
+                      <div className="fo-table-cell-text fo-contract-cell-text-readable">
                         <span>{contract.aksi || "-"}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-category">
+                      <div className="fo-table-cell-text fo-contract-cell-text-readable">
                         <span>{contract.kategori || "-"}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-prev-id">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{contract.previousIdKontrak || "-"}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-code">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <strong>{contract.kodePelanggan || "-"}</strong>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-title">
+                    <td className="fo-contract-cell-name">
+                      <div className="fo-table-cell-title fo-contract-cell-title">
                         <strong>{contract.namaPelanggan || "-"}</strong>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-location">
+                      <div className="fo-table-cell-text fo-contract-cell-text-readable">
                         <span>{contract.lokasi || "-"}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-time">
+                      <div className="fo-table-cell-text fo-contract-cell-text-readable">
                         <span>{contract.sisaWaktu || "-"}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-date">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{contract.periodeAwal || "-"}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-duration">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{contract.durasiKontrak || "-"}{contract.durasiKontrak ? " bulan" : ""}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-date">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{contract.periodeBerakhir || "-"}</span>
                       </div>
                     </td>
-                    <td>
+                    <td className="fo-contract-cell-doc">
                       {contract.noKontrakUrl ? (
                         <a className="fo-table-link" href={contract.noKontrakUrl} target="_blank" rel="noreferrer">
                           {contract.noKontrak || "Buka dokumen"}
@@ -231,42 +231,42 @@ export function ContractsReadonly() {
                         <span className="fo-table-muted">{contract.noKontrak || "-"}</span>
                       )}
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-core">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{contract.core || "-"}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-sharing">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{contract.sharingCore || "-"}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-currency">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{formatCurrency(contract.nilaiKontrak)}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-currency">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{formatCurrency(contract.biayaAktivasi)}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-currency">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{formatCurrency(contract.perbulan)}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-currency">
+                      <div className="fo-table-cell-text fo-contract-cell-text-nowrap">
                         <span>{formatCurrency(contract.nilaiPeriodeAktif)}</span>
                       </div>
                     </td>
-                    <td>
+                    <td className="fo-contract-cell-status">
                       <span className={`fo-inline-badge ${getContractStatusClass(contract.statusKontrak)}`.trim()}>
                         {contract.statusKontrak || "-"}
                       </span>
                     </td>
-                    <td>
+                    <td className="fo-contract-cell-link">
                       {contract.berkasUrl ? (
                         <a className="fo-table-link" href={contract.berkasUrl} target="_blank" rel="noreferrer">
                           Buka folder
@@ -275,13 +275,13 @@ export function ContractsReadonly() {
                         <span className="fo-table-muted">-</span>
                       )}
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-billing">
+                      <div className="fo-table-cell-text fo-contract-cell-text-readable">
                         <span>{contract.billingLabel || "-"}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="fo-table-cell-text">
+                    <td className="fo-contract-cell-remarks">
+                      <div className="fo-table-cell-text fo-contract-cell-text-readable">
                         <span>{contract.keterangan || "-"}</span>
                       </div>
                     </td>

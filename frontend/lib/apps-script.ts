@@ -20,8 +20,6 @@ type AppsScriptFailure = {
 
 type AppsScriptResponse<T> = AppsScriptSuccess<T> | AppsScriptFailure;
 
-const APPS_SCRIPT_GET_REVALIDATE_SECONDS = 60;
-
 class AppsScriptHttpError extends Error {
   status: number;
   code: string;
@@ -57,15 +55,33 @@ function getAppsScriptConfig() {
   return { baseUrl, secret };
 }
 
+function sanitizeAppsScriptText(text: string) {
+  return text
+    .replace(/^\uFEFF/, "")
+    .replace(/^\)\]\}'\s*/, "")
+    .trim();
+}
+
+function buildInvalidResponseMessage(response: Response, body: string) {
+  const contentType = response.headers.get("content-type") || "unknown";
+  const preview = body.replace(/\s+/g, " ").slice(0, 140);
+
+  if (contentType.includes("text/html")) {
+    return `Apps Script mengembalikan HTML, bukan JSON. Periksa URL deploy Web App pada APPS_SCRIPT_BASE_URL. Status ${response.status} dari ${response.url}.`;
+  }
+
+  return `Response Apps Script tidak valid. Status ${response.status}, content-type ${contentType}, url ${response.url}, preview: ${preview || "-"}.`;
+}
+
 async function parseAppsScriptResponse<T>(response: Response): Promise<AppsScriptSuccess<T>> {
-  const text = await response.text();
+  const text = sanitizeAppsScriptText(await response.text());
   let payload: AppsScriptResponse<T>;
 
   try {
     payload = JSON.parse(text) as AppsScriptResponse<T>;
   } catch {
     throw new AppsScriptHttpError(
-      "Response Apps Script bukan JSON valid. Periksa deploy Web App dan izin aksesnya.",
+      buildInvalidResponseMessage(response, text),
       502,
       "invalid_apps_script_response",
     );
@@ -92,7 +108,7 @@ async function callAppsScriptGet<T>(query: Record<string, string>) {
 
   const response = await fetch(url, {
     method: "GET",
-    next: { revalidate: APPS_SCRIPT_GET_REVALIDATE_SECONDS },
+    cache: "no-store",
   });
 
   return parseAppsScriptResponse<T>(response);

@@ -330,18 +330,20 @@ export function CustomerAdmin() {
           <span>Source: master pelanggan</span>
         </div>
 
-        {isLoading ? (
-          <div className="fo-empty-state">Memuat data pelanggan...</div>
-        ) : filteredCustomers.length === 0 ? (
-          <div className="fo-empty-state">Belum ada data yang cocok.</div>
-        ) : (
-          <CustomerTable
-            customers={filteredCustomers}
-            deletingId={deletingId}
-            onEdit={startEditCustomer}
-            onDelete={handleDeleteCustomer}
-          />
-        )}
+        <div className="fo-table-stage">
+          {isLoading ? (
+            <div className="fo-empty-state">Memuat data pelanggan...</div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="fo-empty-state">Belum ada data yang cocok.</div>
+          ) : (
+            <CustomerTable
+              customers={filteredCustomers}
+              deletingId={deletingId}
+              onEdit={startEditCustomer}
+              onDelete={handleDeleteCustomer}
+            />
+          )}
+        </div>
       </section>
 
       {isModalOpen ? (
