@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <?!= include('LoadingUiStyles'); ?>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 16px;
+        font-size: 14px;
+      }
+
+      h2, h3 {
+        margin-top: 0;
+      }
+
+      .section {
+        margin-bottom: 20px;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .field.full {
+        grid-column: 1 / -1;
+      }
+
+      label {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      input, select, textarea, button {
+        padding: 8px;
+        font-size: 14px;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 70px;
+      }
+
+      .upload-item {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        cursor: pointer;
+        border: none;
+        border-radius: 6px;
+      }
+
+      .btn-primary {
+        background: #1a73e8;
+        color: white;
+      }
+
+      .btn-secondary {
+        background: #f1f3f4;
+      }
+
+      .helper {
+        color: #666;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <?!= include('LoadingUiMarkup'); ?>
+
+    <div id="formContent" class="hidden">
+      <h2>Tambah Pelanggan</h2>
+      <div class="section">
+        <h3>Data Pelanggan</h3>
+        <div class="grid">
+          <div class="field">
+            <label for="kodePelanggan">Kode Pelanggan</label>
+            <input type="text" id="kodePelanggan" placeholder="Opsional">
+          </div>
+
+          <div class="field">
+            <label for="namaPelanggan">Nama Pelanggan</label>
+            <input type="text" id="namaPelanggan" placeholder="Wajib">
+          </div>
+
+          <div class="field">
+            <label for="pic">PIC</label>
+            <input type="text" id="pic">
+          </div>
+
+          <div class="field">
+            <label for="telepon">Telepon</label>
+            <input type="text" id="telepon">
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email">
+          </div>
+
+          <div class="field full">
+            <label for="keterangan">Keterangan</label>
+            <textarea id="keterangan"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Berkas Pelanggan</h3>
+        <div id="uploadContainer"></div>
+        <button type="button" class="btn btn-secondary" onclick="addUploadItem()">+ Tambah Berkas</button>
+        <div class="helper">Anda bisa menambahkan banyak file. Jenis berkas menentukan folder tujuan di Google Drive.</div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" onclick="google.script.host.close()">Tutup</button>
+        <button type="button" id="saveButton" class="btn btn-primary" onclick="submitForm()">Simpan</button>
+      </div>
+      <?!= include('LoadingUiScript'); ?>
+      <script>
+        function addUploadItem() {
+          const container = document.getElementById('uploadContainer');
+          const item = document.createElement('div');
+          item.className = 'upload-item';
+
+          item.innerHTML = `
+            <div class="grid upload-row">
+              <div class="field">
+                <label>Jenis Berkas</label>
+                <select class="jenis-berkas">
+                  <option value="">Pilih jenis berkas</option>
+                  <option value="Kontrak">Kontrak</option>
+                  <option value="BAK-PKS">BAK/PKS</option>
+                  <option value="Dokumen Lain">Dokumen Lain</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Nama File</label>
+                <input type="text" class="nama-file" placeholder="Nama file manual">
+              </div>
+
+              <div class="field full">
+                <label>Upload File</label>
+                <input type="file" class="upload-file">
+              </div>
+            </div>
+          `;
+
+          container.appendChild(item);
+        }
+
+        function fileToBase64(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result.split(',')[1];
+              resolve(result);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        }
+
+        async function submitForm() {
+          const uploadItemsRaw = [...document.querySelectorAll('.upload-item')];
+
+          const formData = {
+            kodePelanggan: document.getElementById('kodePelanggan').value,
+            namaPelanggan: document.getElementById('namaPelanggan').value,
+            pic: document.getElementById('pic').value,
+            telepon: document.getElementById('telepon').value,
+            email: document.getElementById('email').value,
+            keterangan: document.getElementById('keterangan').value,
+            uploadItems: []
+          };
+
+          if (!formData.namaPelanggan.trim()) {
+            alert('Nama Pelanggan wajib diisi.');
+            return;
+          }
+
+          LoadingUi.showLoading();
+          LoadingUi.setProgress(10, 'Memvalidasi data...');
+
+          try {
+            for (let i = 0; i < uploadItemsRaw.length; i++) {
+              const item = uploadItemsRaw[i];
+              const jenisBerkas = item.querySelector('.jenis-berkas')?.value || '';
+              const namaFile = item.querySelector('.nama-file')?.value || '';
+              const fileInput = item.querySelector('.upload-file');
+              const file = fileInput?.files?.[0] || null;
+
+              if (file) {
+                if (!jenisBerkas) {
+                  LoadingUi.hideLoading();
+                  alert('Jenis berkas wajib diisi jika upload file.');
+                  return;
+                }
+
+                if (!namaFile.trim()) {
+                  LoadingUi.hideLoading();
+                  alert('Nama file wajib diisi jika upload file.');
+                  return;
+                }
+
+                const totalFiles = uploadItemsRaw.filter(row => row.querySelector('.upload-file')?.files?.[0]).length;
+                const currentFileIndex = formData.uploadItems.length + 1;
+
+                LoadingUi.setProgress(
+                  20 + Math.round((currentFileIndex / Math.max(totalFiles, 1)) * 35),
+                  `Membaca file ${currentFileIndex} dari ${totalFiles}: ${namaFile}...`
+                );
+
+                const base64Data = await fileToBase64(file);
+
+                formData.uploadItems.push({
+                  jenisBerkas: jenisBerkas,
+                  namaFile: namaFile,
+                  originalFileName: file.name,
+                  mimeType: file.type,
+                  base64Data: base64Data
+                });
+              }
+            }
+
+            LoadingUi.setProgress(65, 'Mengirim data dan berkas ke server...');
+
+            google.script.run
+              .withSuccessHandler(function(response) {
+                LoadingUi.setProgress(100, 'Selesai.');
+                setTimeout(function() {
+                  LoadingUi.hideLoading();
+                  alert(response.message);
+                  google.script.host.close();
+                }, 500);
+              })
+              .withFailureHandler(function(error) {
+                LoadingUi.hideLoading();
+                alert('Gagal menyimpan: ' + error.message);
+              })
+              .savePerusahaan(formData);
+
+          } catch (err) {
+            LoadingUi.hideLoading();
+            alert('Gagal membaca file: ' + err.message);
+          }
+        }
+
+        window.addEventListener('load', function() {
+          LoadingUi.configure({
+            formContentId: 'formContent',
+            saveButtonId: 'saveButton',
+            loadingTitle: 'Memproses Data',
+            showInitialLoader: true
+          });
+          setTimeout(LoadingUi.showFormContent, 500);
+        });
+
+        addUploadItem();
+      </script>
+    </div>
+  </body>
+</html>

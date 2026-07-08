@@ -1,0 +1,55 @@
+<script>
+  const LoadingUi = (() => {
+    let formContentId = 'formContent';
+    let saveButtonId = 'saveButton';
+
+    function configure(options = {}) {
+      formContentId = options.formContentId || formContentId;
+      saveButtonId = options.saveButtonId || saveButtonId;
+
+      if (options.loadingTitle) {
+        document.getElementById('loadingTitle').textContent = options.loadingTitle;
+      }
+
+      if (options.showInitialLoader) {
+        document.getElementById('initialLoader').classList.remove('hidden');
+        document.getElementById(formContentId).classList.add('hidden');
+      } else {
+        document.getElementById('initialLoader').classList.add('hidden');
+      }
+    }
+
+    function showFormContent() {
+      const loader = document.getElementById('initialLoader');
+      const content = document.getElementById(formContentId);
+      if (loader) loader.classList.add('hidden');
+      if (content) content.classList.remove('hidden');
+    }
+
+    function showLoading() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      const saveButton = document.getElementById(saveButtonId);
+      if (saveButton) saveButton.disabled = true;
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      const saveButton = document.getElementById(saveButtonId);
+      if (saveButton) saveButton.disabled = false;
+    }
+
+    function setProgress(percent, text) {
+      document.getElementById('progressBar').style.width = `${percent}%`;
+      document.getElementById('progressText').textContent = text;
+      document.getElementById('progressPercent').textContent = `${percent}%`;
+    }
+
+    return {
+      configure,
+      showFormContent,
+      showLoading,
+      hideLoading,
+      setProgress
+    };
+  })();
+</script>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <?!= include('LoadingUiStyles'); ?>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 16px;
+        font-size: 14px;
+      }
+
+      h2, h3 {
+        margin-top: 0;
+      }
+
+      .section {
+        margin-bottom: 20px;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .field.full {
+        grid-column: 1 / -1;
+      }
+
+      label {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      input, select, textarea, button {
+        padding: 8px;
+        font-size: 14px;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 70px;
+      }
+
+      .existing-file-item,
+      .upload-item {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .file-link {
+        padding: 8px 0;
+        color: #1a73e8;
+        word-break: break-word;
+      }
+
+      .empty-state {
+        color: #666;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        cursor: pointer;
+        border: none;
+        border-radius: 6px;
+      }
+
+      .btn-primary {
+        background: #1a73e8;
+        color: white;
+      }
+
+      .btn-secondary {
+        background: #f1f3f4;
+      }
+
+      .helper {
+        color: #666;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <?!= include('LoadingUiMarkup'); ?>
+
+    <div id="formContent" class="hidden">
+      <h2>Edit Pelanggan</h2>
+      <div class="section">
+        <h3>Data Pelanggan</h3>
+        <div class="grid">
+          <div class="field">
+            <label for="kodePelanggan">Kode Pelanggan</label>
+            <input type="text" id="kodePelanggan" placeholder="Opsional">
+          </div>
+
+          <div class="field">
+            <label for="namaPelanggan">Nama Pelanggan</label>
+            <input type="text" id="namaPelanggan" placeholder="Wajib">
+          </div>
+
+          <div class="field">
+            <label for="pic">PIC</label>
+            <input type="text" id="pic">
+          </div>
+
+          <div class="field">
+            <label for="telepon">Telepon</label>
+            <input type="text" id="telepon">
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email">
+          </div>
+
+          <div class="field full">
+            <label for="keterangan">Keterangan</label>
+            <textarea id="keterangan"></textarea>
+          </div>
+        </div>
+        <div class="helper">Perubahan kode atau nama pelanggan akan ikut memperbarui nama folder utama pelanggan di Google Drive.</div>
+      </div>
+
+      <div class="section">
+        <h3>Berkas Pelanggan</h3>
+
+        <div id="existingFilesContainer"></div>
+        <div id="existingFilesEmpty" class="empty-state">Belum ada berkas pelanggan.</div>
+
+        <h3>Upload Berkas Baru</h3>
+        <div id="uploadContainer"></div>
+        <button type="button" class="btn btn-secondary" onclick="addUploadItem()">+ Tambah Berkas</button>
+        <div class="helper">Berkas baru akan masuk ke folder pelanggan sesuai jenis berkas yang dipilih.</div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" onclick="google.script.host.close()">Tutup</button>
+        <button type="button" id="saveButton" class="btn btn-primary" onclick="submitForm()">Simpan Perubahan</button>
+      </div>
+      <?!= include('LoadingUiScript'); ?>
+      <script>
+        const customerRowNumber = Number(<?= rowNumber ?> || 0);
+        let customerRecord = null;
+
+        function fillForm(record) {
+          document.getElementById('kodePelanggan').value = record.kodePelanggan || '';
+          document.getElementById('namaPelanggan').value = record.namaPelanggan || '';
+          document.getElementById('pic').value = record.pic || '';
+          document.getElementById('telepon').value = record.telepon || '';
+          document.getElementById('email').value = record.email || '';
+          document.getElementById('keterangan').value = record.keterangan || '';
+          renderExistingFiles(record.existingFiles || []);
+        }
+
+        function renderExistingFiles(files) {
+          const container = document.getElementById('existingFilesContainer');
+          const emptyState = document.getElementById('existingFilesEmpty');
+          container.innerHTML = '';
+
+          if (!files.length) {
+            emptyState.style.display = 'block';
+            return;
+          }
+
+          emptyState.style.display = 'none';
+
+          files.forEach(function(file) {
+            const item = document.createElement('div');
+            item.className = 'existing-file-item';
+            item.innerHTML = `
+              <div class="grid">
+                <div class="field">
+                  <label>Jenis Berkas</label>
+                  <input type="text" value="${escapeAttribute(file.jenisBerkas || 'Dokumen')}" readonly>
+                </div>
+                <div class="field">
+                  <label>Nama File</label>
+                  <a class="file-link" href="${escapeAttribute(file.url || '#')}" target="_blank">${escapeHtml(file.namaFile || '')}</a>
+                </div>
+                <div class="field full">
+                  <label>Tindakan</label>
+                  <label class="checkbox-row">
+                    <input type="checkbox" class="delete-existing-file" value="${escapeAttribute(file.fileId || '')}">
+                    <span>Hapus file ini saat simpan</span>
+                  </label>
+                </div>
+              </div>
+            `;
+            container.appendChild(item);
+          });
+        }
+
+        function addUploadItem() {
+          const container = document.getElementById('uploadContainer');
+          const item = document.createElement('div');
+          item.className = 'upload-item';
+
+          item.innerHTML = `
+            <div class="grid">
+              <div class="field">
+                <label>Jenis Berkas</label>
+                <select class="jenis-berkas">
+                  <option value="">Pilih jenis berkas</option>
+                  <option value="Kontrak">Kontrak</option>
+                  <option value="BAK-PKS">BAK/PKS</option>
+                  <option value="Dokumen Lain">Dokumen Lain</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Nama File</label>
+                <input type="text" class="nama-file" placeholder="Nama file manual">
+              </div>
+
+              <div class="field full">
+                <label>Upload File</label>
+                <input type="file" class="upload-file">
+              </div>
+            </div>
+          `;
+
+          container.appendChild(item);
+        }
+
+        function escapeHtml(value) {
+          return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function escapeAttribute(value) {
+          return escapeHtml(value);
+        }
+
+        function fileToBase64(file) {
+          return new Promise(function(resolve, reject) {
+            const reader = new FileReader();
+            reader.onload = function() {
+              resolve(reader.result.split(',')[1]);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        }
+
+        function loadCustomer() {
+          if (!customerRowNumber) {
+            LoadingUi.hideLoading();
+            alert('Baris pelanggan tidak valid.');
+            google.script.host.close();
+            return;
+          }
+
+          google.script.run
+            .withSuccessHandler(function(record) {
+              customerRecord = record;
+              fillForm(record);
+              LoadingUi.showFormContent();
+              LoadingUi.hideLoading();
+            })
+            .withFailureHandler(function(error) {
+              LoadingUi.hideLoading();
+              alert('Gagal memuat data: ' + error.message);
+              google.script.host.close();
+            })
+            .getPelangganByRow(customerRowNumber);
+        }
+
+        async function submitForm() {
+          if (!customerRecord || !customerRecord.id) {
+            alert('Data pelanggan belum siap.');
+            return;
+          }
+
+          const uploadRows = [...document.querySelectorAll('.upload-item')];
+          const deleteFileIds = [...document.querySelectorAll('.delete-existing-file:checked')]
+            .map(function(input) {
+              return input.value;
+            })
+            .filter(Boolean);
+
+          const formData = {
+            id: customerRecord.id,
+            kodePelanggan: document.getElementById('kodePelanggan').value,
+            namaPelanggan: document.getElementById('namaPelanggan').value,
+            pic: document.getElementById('pic').value,
+            telepon: document.getElementById('telepon').value,
+            email: document.getElementById('email').value,
+            keterangan: document.getElementById('keterangan').value,
+            deleteFileIds: deleteFileIds,
+            uploadItems: []
+          };
+
+          if (!formData.namaPelanggan.trim()) {
+            alert('Nama Pelanggan wajib diisi.');
+            return;
+          }
+
+          LoadingUi.showLoading();
+          LoadingUi.setProgress(10, 'Menyiapkan perubahan pelanggan...');
+
+          try {
+            const totalFiles = uploadRows.filter(function(row) {
+              return row.querySelector('.upload-file')?.files?.[0];
+            }).length;
+
+            if (deleteFileIds.length) {
+              LoadingUi.setProgress(20, `Menandai ${deleteFileIds.length} berkas untuk dihapus...`);
+            }
+
+            for (const row of uploadRows) {
+              const jenisBerkas = row.querySelector('.jenis-berkas')?.value || '';
+              const namaFile = row.querySelector('.nama-file')?.value || '';
+              const file = row.querySelector('.upload-file')?.files?.[0] || null;
+
+              if (!file) continue;
+
+              if (!jenisBerkas || !namaFile.trim()) {
+                LoadingUi.hideLoading();
+                alert('Jenis berkas dan nama file wajib diisi jika upload file.');
+                return;
+              }
+
+              const currentFileIndex = formData.uploadItems.length + 1;
+              LoadingUi.setProgress(
+                25 + Math.round((currentFileIndex / Math.max(totalFiles, 1)) * 35),
+                `Membaca file ${currentFileIndex} dari ${Math.max(totalFiles, 1)}: ${namaFile}...`
+              );
+
+              const base64Data = await fileToBase64(file);
+              formData.uploadItems.push({
+                jenisBerkas,
+                namaFile,
+                originalFileName: file.name,
+                mimeType: file.type,
+                base64Data
+              });
+            }
+
+            LoadingUi.setProgress(70, 'Menyimpan perubahan dan berkas...');
+
+            google.script.run
+              .withSuccessHandler(function(response) {
+                LoadingUi.setProgress(100, 'Selesai.');
+                setTimeout(function() {
+                  LoadingUi.hideLoading();
+                  alert(response.message);
+                  google.script.host.close();
+                }, 400);
+              })
+              .withFailureHandler(function(error) {
+                LoadingUi.hideLoading();
+                alert('Gagal menyimpan: ' + error.message);
+              })
+              .updatePelanggan(formData);
+          } catch (error) {
+            LoadingUi.hideLoading();
+            alert('Gagal membaca file: ' + error.message);
+          }
+        }
+
+        window.addEventListener('load', function() {
+          LoadingUi.configure({
+            formContentId: 'formContent',
+            saveButtonId: 'saveButton',
+            loadingTitle: 'Memproses Data',
+            showInitialLoader: true
+          });
+          LoadingUi.setProgress(20, 'Memuat data pelanggan...');
+          loadCustomer();
+        });
+
+        addUploadItem();
+      </script>
+    </div>
+  </body>
+</html>

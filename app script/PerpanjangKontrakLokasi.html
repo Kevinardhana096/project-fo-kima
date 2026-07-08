@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <?!= include('LoadingUiStyles'); ?>
+    <style>
+      :root {
+        --bg: #f5f3ee;
+        --surface: #fffdfa;
+        --line: #d8d1c4;
+        --text: #2f2a24;
+        --muted: #746b61;
+        --accent: #1f6f46;
+        --accent-dark: #185638;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 18px;
+        font: 13px/1.45 "Segoe UI", Arial, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top right, #efe8db 0, transparent 26%),
+          linear-gradient(180deg, #f8f4ec 0%, #f2ede3 100%);
+      }
+
+      .modal {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 18px 40px rgba(58, 48, 37, 0.12);
+        overflow: hidden;
+      }
+
+      .header {
+        padding: 18px 22px 12px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(135deg, #fcfaf6 0%, #f3eee5 100%);
+      }
+
+      .header h1 {
+        margin: 0 0 4px;
+        font-size: 20px;
+      }
+
+      .header p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .content {
+        padding: 14px 22px 18px;
+      }
+
+      .section {
+        margin-bottom: 14px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.75);
+      }
+
+      .section h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .field.full {
+        grid-column: 1 / -1;
+      }
+
+      label {
+        font-weight: 600;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid #cfc7bb;
+        border-radius: 10px;
+        padding: 9px 11px;
+        font: inherit;
+        color: inherit;
+        background: #fff;
+      }
+
+      textarea {
+        min-height: 72px;
+        resize: vertical;
+      }
+
+      input[readonly] {
+        background: #f2efe9;
+        color: #625b51;
+      }
+
+      .helper,
+      .note {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .note {
+        margin-top: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: #f1efe8;
+        border: 1px dashed #c8c0b3;
+      }
+
+      .upload-item {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fcfbf8;
+      }
+
+      .upload-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .inline-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #e9f4ed;
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 14px 22px 18px;
+        border-top: 1px solid var(--line);
+        background: rgba(255, 253, 250, 0.96);
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 16px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .btn-secondary {
+        background: #ece6da;
+        color: var(--text);
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .btn-primary:hover {
+        background: var(--accent-dark);
+      }
+
+      @media (max-width: 720px) {
+        .grid,
+        .upload-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <?!= include('LoadingUiMarkup'); ?>
+    <div id="formContent" class="modal hidden">
+      <div class="header">
+        <h1>Perpanjangan Kontrak Lokasi</h1>
+        <p>Buat kontrak baru dari kontrak lama tanpa memutus histori.</p>
+      </div>
+
+      <div class="content">
+        <div class="section">
+          <h2>Pilih Kontrak Asal</h2>
+          <div class="grid">
+            <div class="field full">
+              <label for="sourceRowNumber">Kontrak yang Diperpanjang</label>
+              <select id="sourceRowNumber" onchange="handleSourceChange()">
+                <option value="">Memuat daftar kontrak...</option>
+              </select>
+              <div class="helper">Hanya kontrak terbaru pada grup pelanggan dan lokasi yang sama yang bisa diperpanjang.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Kontrak Asal</h2>
+          <div class="grid">
+            <div class="field">
+              <label for="sourceIdKontrak">ID Kontrak</label>
+              <input type="text" id="sourceIdKontrak" readonly>
+            </div>
+            <div class="field">
+              <label for="sourceStatusKontrak">Status Saat Ini</label>
+              <input type="text" id="sourceStatusKontrak" readonly>
+            </div>
+            <div class="field">
+              <label for="sourceNamaPerusahaan">Pelanggan</label>
+              <input type="text" id="sourceNamaPerusahaan" readonly>
+            </div>
+            <div class="field">
+              <label for="sourceKategori">Kategori Lama</label>
+              <input type="text" id="sourceKategori" readonly>
+            </div>
+            <div class="field">
+              <label for="sourceLokasi">Lokasi</label>
+              <input type="text" id="sourceLokasi" readonly>
+            </div>
+            <div class="field">
+              <label for="sourceCore">Core Lama</label>
+              <input type="text" id="sourceCore" readonly>
+            </div>
+            <div class="field">
+              <label for="sourceSharingCore">Sharing Core Lama</label>
+              <input type="text" id="sourceSharingCore" readonly>
+            </div>
+            <div class="field">
+              <label for="sourceNoKontrak">No Kontrak Lama</label>
+              <input type="text" id="sourceNoKontrak" readonly>
+            </div>
+            <div class="field full">
+              <label for="sourcePeriode">Periode Lama</label>
+              <input type="text" id="sourcePeriode" readonly>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Data Perpanjangan</h2>
+          <div class="grid">
+            <div class="field">
+              <label for="kodePelanggan">Kode Pelanggan</label>
+              <input type="text" id="kodePelanggan" readonly>
+            </div>
+            <div class="field">
+              <label for="namaPelanggan">Nama Pelanggan</label>
+              <input type="text" id="namaPelanggan" readonly>
+            </div>
+
+            <div class="field full">
+              <label for="lokasi">Lokasi / Customer</label>
+              <input type="text" id="lokasi" readonly>
+            </div>
+            <div class="field">
+              <label for="kategori">Kategori Baru</label>
+              <select id="kategori">
+                <option value="">Pilih kategori</option>
+                <option value="BAK (Berita Acara Kesepakatan)">BAK (Berita Acara Kesepakatan)</option>
+                <option value="Kontrak/Perjanjian Induk">Kontrak/Perjanjian Induk</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="periodeAwal">Periode Awal Baru</label>
+              <input type="date" id="periodeAwal" onchange="handlePeriodeAwalChange()">
+            </div>
+            <div class="field">
+              <label for="durasiKontrak">Durasi Kontrak (bulan)</label>
+              <input type="number" id="durasiKontrak" min="1" placeholder="Contoh: 12" onchange="handleDurasiKontrakChange()">
+            </div>
+
+            <div class="field">
+              <label for="periodeBerakhir">Periode Berakhir Baru</label>
+              <input type="date" id="periodeBerakhir" onchange="handlePeriodeBerakhirChange()">
+              <div class="helper">Isi Periode Awal + Durasi atau Periode Awal + Periode Berakhir.</div>
+              <div id="periodeValidationMessage" class="helper"></div>
+            </div>
+            <div class="field">
+              <label for="core">Core Baru</label>
+              <input type="text" id="core" placeholder="Core dapat diubah saat perpanjangan" oninput="syncPackageChoice('core')">
+            </div>
+            <div class="field">
+              <label for="sharingCore">Sharing Core Baru</label>
+              <select id="sharingCore" onchange="syncPackageChoice('sharingCore')">
+                <option value="">Tidak ada sharing core</option>
+                <option value="1/2">1/2</option>
+                <option value="1/4">1/4</option>
+                <option value="1/8">1/8</option>
+                <option value="1/16">1/16</option>
+                <option value="1/32">1/32</option>
+              </select>
+            </div>
+            <div class="field full">
+              <div id="packageChoiceMessage" class="helper">Pilih salah satu saja: isi Core atau pilih Sharing Core.</div>
+            </div>
+
+            <div class="field">
+              <label for="noKontrak">No Kontrak Baru</label>
+              <input type="text" id="noKontrak" placeholder="Opsional">
+            </div>
+            <div class="field">
+              <label for="nilaiKontrak">Nilai Kontrak</label>
+              <input type="number" id="nilaiKontrak" min="0" placeholder="Opsional">
+            </div>
+
+            <div class="field">
+              <label for="biayaAktivasi">Biaya Aktivasi</label>
+              <input type="number" id="biayaAktivasi" min="0" placeholder="Opsional">
+            </div>
+            <div class="field">
+              <label for="perbulan">Perbulan</label>
+              <input type="number" id="perbulan" min="0" placeholder="Masukkan biaya per bulan" onchange="recalculateContractFields()">
+            </div>
+
+            <div class="field">
+              <label for="nilaiPeriodeAktif">Nilai Periode Aktif</label>
+              <input type="number" id="nilaiPeriodeAktif" readonly>
+              <div class="helper">Otomatis dari Perbulan x Durasi Kontrak.</div>
+            </div>
+            <div class="field">
+              <label>Status Lama</label>
+              <div class="inline-badge">Kontrak lama akan ditandai Diperpanjang</div>
+            </div>
+
+            <div class="field full">
+              <label for="keterangan">Keterangan</label>
+              <textarea id="keterangan" placeholder="Opsional"></textarea>
+            </div>
+          </div>
+
+          <div class="note">Kontrak baru akan dibuat pada grup pelanggan dan lokasi yang sama, lalu disisipkan tepat di bawah histori grup tersebut.</div>
+        </div>
+
+        <div class="section">
+          <h2>Dokumen Perpanjangan</h2>
+          <div id="uploadContainer"></div>
+          <button type="button" class="btn btn-secondary" onclick="addUploadItem()">+ Tambah Berkas</button>
+          <div class="helper" style="margin-top:8px;">Folder Drive baru akan dibuat mengikuti periode kontrak yang baru.</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" onclick="google.script.host.close()">Tutup</button>
+        <button type="button" id="saveButton" class="btn btn-primary" onclick="submitForm()">Simpan Perpanjangan</button>
+      </div>
+    </div>
+
+    <?!= include('LoadingUiScript'); ?>
+    <script>
+      const initialSourceRowNumber = parseInt('<?= sourceRowNumber ?>', 10) || '';
+      let sourceCandidates = [];
+      let sourceContract = null;
+      let manualPeriodeBerakhir = false;
+
+      function addUploadItem() {
+        const container = document.getElementById('uploadContainer');
+        const item = document.createElement('div');
+        item.className = 'upload-item';
+        item.innerHTML = `
+          <div class="grid upload-row">
+            <div class="field">
+              <label>Jenis Berkas</label>
+              <select class="jenis-berkas">
+                <option value="">Pilih jenis berkas</option>
+                <option value="Kontrak">Kontrak</option>
+                <option value="BAK-PKS">BAK-PKS</option>
+                <option value="Dokumen Lain">Dokumen Lain</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Nama File</label>
+              <input type="text" class="nama-file" placeholder="Nama file manual">
+            </div>
+            <div class="field full">
+              <label>Upload File</label>
+              <input type="file" class="upload-file">
+            </div>
+          </div>
+        `;
+
+        container.appendChild(item);
+      }
+
+      function initForm() {
+        google.script.run
+          .withSuccessHandler(handleSourceCandidatesLoaded)
+          .withFailureHandler(showError)
+          .getKontrakPerpanjanganCandidates();
+      }
+
+      function handleSourceCandidatesLoaded(candidates) {
+        sourceCandidates = candidates || [];
+        const select = document.getElementById('sourceRowNumber');
+        select.innerHTML = '<option value="">Pilih kontrak asal</option>';
+
+        sourceCandidates.forEach(candidate => {
+          const option = document.createElement('option');
+          option.value = String(candidate.rowNumber);
+          option.textContent = [
+            candidate.namaPelanggan,
+            candidate.lokasi,
+            candidate.idKontrak,
+            candidate.periodeBerakhir || '-'
+          ].join(' | ');
+          select.appendChild(option);
+        });
+
+        if (initialSourceRowNumber) {
+          select.value = String(initialSourceRowNumber);
+          handleSourceChange();
+        }
+      }
+
+      function handleSourceChange() {
+        const selectedRow = Number(document.getElementById('sourceRowNumber').value || 0);
+        resetSourceSummary();
+        resetPerpanjanganForm();
+
+        if (!selectedRow) return;
+
+        LoadingUi.showLoading();
+        LoadingUi.setProgress(20, 'Memuat data kontrak asal...');
+
+        google.script.run
+          .withSuccessHandler(handleSourceLoaded)
+          .withFailureHandler(handleFailure)
+          .getKontrakPerpanjanganSourceByRow(selectedRow);
+      }
+
+      function handleSourceLoaded(data) {
+        sourceContract = data;
+        renderSourceSummary(data);
+        populatePerpanjanganForm(data);
+        LoadingUi.hideLoading();
+      }
+
+      function renderSourceSummary(data) {
+        document.getElementById('sourceIdKontrak').value = data.idKontrak || '';
+        document.getElementById('sourceStatusKontrak').value = data.statusKontrak || '';
+        document.getElementById('sourceNamaPerusahaan').value = data.namaPelanggan || '';
+        document.getElementById('sourceKategori').value = data.kategori || '';
+        document.getElementById('sourceLokasi').value = data.lokasi || '';
+        document.getElementById('sourceCore').value = data.core || data.paket || '';
+        document.getElementById('sourceSharingCore').value = data.sharingCore || '';
+        document.getElementById('sourceNoKontrak').value = data.noKontrak || '';
+        document.getElementById('sourcePeriode').value = formatPeriodeText(data.periodeAwal, data.periodeBerakhir);
+      }
+
+      function populatePerpanjanganForm(data) {
+        document.getElementById('kodePelanggan').value = data.kodePelanggan || '';
+        document.getElementById('namaPelanggan').value = data.namaPelanggan || '';
+        document.getElementById('lokasi').value = data.lokasi || '';
+        document.getElementById('kategori').value = data.kategori || '';
+        document.getElementById('core').value = data.core || data.paket || '';
+        document.getElementById('sharingCore').value = data.sharingCore || '';
+        document.getElementById('noKontrak').value = '';
+        document.getElementById('nilaiKontrak').value = data.nilaiKontrak || '';
+        document.getElementById('biayaAktivasi').value = data.biayaAktivasi || '';
+        document.getElementById('perbulan').value = data.perbulan || '';
+        document.getElementById('keterangan').value = '';
+        document.getElementById('durasiKontrak').value = data.durasiKontrak || '';
+        document.getElementById('periodeAwal').value = '';
+        document.getElementById('periodeBerakhir').value = '';
+        document.getElementById('nilaiPeriodeAktif').value = '';
+        manualPeriodeBerakhir = false;
+        validatePackageChoice();
+        recalculateContractFields();
+      }
+
+      function resetSourceSummary() {
+        sourceContract = null;
+        ['sourceIdKontrak', 'sourceStatusKontrak', 'sourceNamaPerusahaan', 'sourceKategori', 'sourceLokasi', 'sourceCore', 'sourceSharingCore', 'sourceNoKontrak', 'sourcePeriode']
+          .forEach(id => {
+            document.getElementById(id).value = '';
+          });
+      }
+
+      function resetPerpanjanganForm() {
+        ['kodePelanggan', 'namaPelanggan', 'lokasi', 'kategori', 'core', 'sharingCore', 'noKontrak', 'nilaiKontrak', 'biayaAktivasi', 'perbulan', 'keterangan', 'durasiKontrak', 'periodeAwal', 'periodeBerakhir', 'nilaiPeriodeAktif']
+          .forEach(id => {
+            document.getElementById(id).value = '';
+          });
+        document.getElementById('periodeValidationMessage').textContent = '';
+        manualPeriodeBerakhir = false;
+        validatePackageChoice();
+      }
+
+      function syncPackageChoice(source) {
+        const coreInput = document.getElementById('core');
+        const sharingSelect = document.getElementById('sharingCore');
+        const hasCore = Boolean(coreInput.value.trim());
+        const hasSharing = Boolean(sharingSelect.value);
+
+        if (source === 'core' && hasCore) {
+          sharingSelect.value = '';
+        }
+
+        if (source === 'sharingCore' && hasSharing) {
+          coreInput.value = '';
+        }
+
+        validatePackageChoice();
+      }
+
+      function validatePackageChoice() {
+        const hasCore = Boolean(document.getElementById('core').value.trim());
+        const hasSharing = Boolean(document.getElementById('sharingCore').value);
+        const message = document.getElementById('packageChoiceMessage');
+
+        if (!hasCore && !hasSharing) {
+          message.textContent = 'Pilih salah satu: Core atau Sharing Core.';
+          message.style.color = '#b23b32';
+          return false;
+        }
+
+        if (hasCore && hasSharing) {
+          message.textContent = 'Core dan Sharing Core tidak boleh diisi bersamaan.';
+          message.style.color = '#b23b32';
+          return false;
+        }
+
+        message.textContent = 'Pilih salah satu saja: isi Core atau pilih Sharing Core.';
+        message.style.color = '';
+        return true;
+      }
+
+      function handlePeriodeAwalChange() {
+        recalculateContractFields({ source: 'periodeAwal' });
+      }
+
+      function handleDurasiKontrakChange() {
+        recalculateContractFields({ source: 'durasiKontrak' });
+      }
+
+      function handlePeriodeBerakhirChange() {
+        const periodeBerakhirValue = document.getElementById('periodeBerakhir').value;
+        manualPeriodeBerakhir = Boolean(periodeBerakhirValue);
+        recalculateContractFields({ source: 'periodeBerakhir' });
+      }
+
+      function recalculateContractFields({ source } = {}) {
+        const periodeAwal = document.getElementById('periodeAwal').value;
+        const durasiKontrak = Number(document.getElementById('durasiKontrak').value || 0);
+        const periodeBerakhirInput = document.getElementById('periodeBerakhir');
+        const perbulan = Number(document.getElementById('perbulan').value || 0);
+        const periodeValidationMessage = document.getElementById('periodeValidationMessage');
+        const periodeBerakhirValue = periodeBerakhirInput.value;
+
+        if (source !== 'periodeBerakhir' && periodeAwal && durasiKontrak > 0 && (!manualPeriodeBerakhir || !periodeBerakhirValue)) {
+          const start = new Date(periodeAwal);
+          const end = new Date(start);
+          end.setMonth(end.getMonth() + durasiKontrak);
+          end.setDate(end.getDate() - 1);
+          periodeBerakhirInput.value = toInputDate(end);
+          manualPeriodeBerakhir = false;
+        }
+
+        if (!periodeBerakhirInput.value) {
+          manualPeriodeBerakhir = false;
+        }
+
+        const finalDuration = durasiKontrak || calculateDurationFromInput(
+          document.getElementById('periodeAwal').value,
+          document.getElementById('periodeBerakhir').value
+        );
+
+        document.getElementById('nilaiPeriodeAktif').value = finalDuration > 0 ? perbulan * finalDuration : '';
+
+        const isMatching = validatePeriodeCombination();
+        periodeValidationMessage.textContent = isMatching ? '' : 'Durasi Kontrak tidak cocok dengan Periode Berakhir.';
+        periodeValidationMessage.style.color = isMatching ? '' : '#b23b32';
+      }
+
+      function validatePeriodeCombination() {
+        const periodeAwal = document.getElementById('periodeAwal').value;
+        const durasiKontrak = Number(document.getElementById('durasiKontrak').value || 0);
+        const periodeBerakhir = document.getElementById('periodeBerakhir').value;
+
+        if (!periodeAwal || !durasiKontrak || !periodeBerakhir) return true;
+
+        const start = new Date(periodeAwal);
+        const expectedEnd = new Date(start);
+        expectedEnd.setMonth(expectedEnd.getMonth() + durasiKontrak);
+        expectedEnd.setDate(expectedEnd.getDate() - 1);
+
+        return toInputDate(expectedEnd) === periodeBerakhir;
+      }
+
+      function calculateDurationFromInput(startValue, endValue) {
+        if (!startValue || !endValue) return 0;
+
+        const start = new Date(startValue);
+        const end = new Date(endValue);
+        if (end < start) return 0;
+
+        const monthDiff = ((end.getFullYear() - start.getFullYear()) * 12) +
+          (end.getMonth() - start.getMonth());
+
+        return monthDiff + (end.getDate() >= start.getDate() ? 1 : 0);
+      }
+
+      function formatPeriodeText(startValue, endValue) {
+        if (!startValue && !endValue) return '';
+        return `${startValue || '-'} s.d. ${endValue || '-'}`;
+      }
+
+      function toInputDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function submitForm() {
+        const selectedSourceRow = Number(document.getElementById('sourceRowNumber').value || 0);
+        const uploadRows = [...document.querySelectorAll('.upload-item')];
+        const formData = {
+          sourceRowNumber: selectedSourceRow,
+          kategori: document.getElementById('kategori').value,
+          kodePelanggan: document.getElementById('kodePelanggan').value,
+          namaPelanggan: document.getElementById('namaPelanggan').value,
+          lokasi: document.getElementById('lokasi').value,
+          core: document.getElementById('core').value,
+          sharingCore: document.getElementById('sharingCore').value,
+          periodeAwal: document.getElementById('periodeAwal').value,
+          durasiKontrak: document.getElementById('durasiKontrak').value,
+          periodeBerakhir: document.getElementById('periodeBerakhir').value,
+          noKontrak: document.getElementById('noKontrak').value,
+          nilaiKontrak: document.getElementById('nilaiKontrak').value,
+          biayaAktivasi: document.getElementById('biayaAktivasi').value,
+          perbulan: document.getElementById('perbulan').value,
+          keterangan: document.getElementById('keterangan').value,
+          uploadItems: []
+        };
+
+        if (!selectedSourceRow) {
+          alert('Pilih kontrak asal terlebih dahulu.');
+          return;
+        }
+
+        if (!validatePackageChoice()) {
+          alert('Pilih salah satu saja: Core atau Sharing Core.');
+          return;
+        }
+
+        if (!validatePeriodeCombination()) {
+          alert('Durasi Kontrak tidak cocok dengan Periode Berakhir.');
+          return;
+        }
+
+        LoadingUi.showLoading();
+        LoadingUi.setProgress(10, 'Menyiapkan data perpanjangan...');
+
+        try {
+          const totalFiles = uploadRows.filter(row => row.querySelector('.upload-file')?.files?.[0]).length;
+
+          for (const row of uploadRows) {
+            const jenisBerkas = row.querySelector('.jenis-berkas')?.value || '';
+            const namaFile = row.querySelector('.nama-file')?.value || '';
+            const file = row.querySelector('.upload-file')?.files?.[0] || null;
+
+            if (!file) continue;
+
+            if (!jenisBerkas || !namaFile.trim()) {
+              LoadingUi.hideLoading();
+              alert('Jenis berkas dan nama file wajib diisi jika upload file.');
+              return;
+            }
+
+            const currentFileIndex = formData.uploadItems.length + 1;
+            LoadingUi.setProgress(
+              25 + Math.round((currentFileIndex / Math.max(totalFiles, 1)) * 35),
+              `Membaca file ${currentFileIndex} dari ${Math.max(totalFiles, 1)}: ${namaFile}...`
+            );
+
+            const base64Data = await fileToBase64(file);
+            formData.uploadItems.push({
+              jenisBerkas,
+              namaFile,
+              originalFileName: file.name,
+              mimeType: file.type,
+              base64Data
+            });
+          }
+
+          LoadingUi.setProgress(70, 'Menyimpan perpanjangan kontrak...');
+
+          google.script.run
+            .withSuccessHandler(handleSuccess)
+            .withFailureHandler(handleFailure)
+            .savePerpanjanganKontrak(formData);
+        } catch (error) {
+          handleFailure(error);
+        }
+      }
+
+      function handleSuccess(response) {
+        LoadingUi.setProgress(100, 'Selesai.');
+        setTimeout(() => {
+          LoadingUi.hideLoading();
+          alert((response && response.message) || 'Perpanjangan kontrak berhasil disimpan.');
+          google.script.host.close();
+        }, 500);
+      }
+
+      function handleFailure(error) {
+        LoadingUi.hideLoading();
+        showError(error);
+      }
+
+      function showError(error) {
+        const message = error && error.message ? error.message : String(error);
+        alert(message);
+      }
+
+      LoadingUi.configure({
+        formContentId: 'formContent',
+        saveButtonId: 'saveButton',
+        loadingTitle: 'Memproses Perpanjangan Kontrak',
+        showInitialLoader: true
+      });
+
+      window.addEventListener('load', () => {
+        setTimeout(LoadingUi.showFormContent, 350);
+      });
+
+      initForm();
+      addUploadItem();
+    </script>
+  </body>
+</html>
