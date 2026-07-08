@@ -65,6 +65,7 @@ Implementasi V1 saat ini:
   - menandai file existing untuk dihapus saat simpan
   - upload file tambahan ke folder pelanggan
 - upload file dikirim dari browser ke route handler `Next.js` sebagai payload JSON base64, lalu diteruskan ke `Apps Script Web App`
+- pada layer Apps Script spreadsheet popup, aksi simpan pelanggan sekarang memakai fungsi `savePelanggan(formData)`; alias `savePerusahaan(formData)` disisakan untuk kompatibilitas alur lama
 - spreadsheet UI tetap dipertahankan sebagai fallback operasional dan audit visual
 
 Implementasi tahap berikutnya yang aktif sekarang:

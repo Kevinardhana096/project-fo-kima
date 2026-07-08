@@ -1802,6 +1802,10 @@ function savePelanggan(formData) {
   };
 }
 
+function savePerusahaan(formData) {
+  return savePelanggan(formData);
+}
+
 function syncPelangganFolderForUpdate_(currentFolderUrl, companyCode, companyName) {
   const targetName = buildPelangganFolderName(companyCode, companyName) || companyName;
   if (!targetName) {

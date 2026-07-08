@@ -78,6 +78,8 @@ Catatan:
 - upload berkas bersifat opsional
 - `Jenis Berkas` dapat berupa `Kontrak`, `BAK-PKS`, atau `Dokumen Lain`
 - nama file dapat ditentukan manual oleh user
+- form popup Google Sheets menyimpan data lewat fungsi Apps Script `savePelanggan(formData)`
+- alias `savePerusahaan(formData)` tetap dipertahankan untuk kompatibilitas pemanggilan lama
 - pada frontend `Next.js`, tipe file yang diterima saat ini adalah `PDF`, `XLSX`, `DOCX`, `JPG`, dan `PNG`
 - pada frontend `Next.js`, ukuran file dibatasi `10 MB` per file
 - setelah simpan, sistem membuat folder pelanggan dan mengisi kolom `Berkas Pelanggan` dengan link folder utama
@@ -151,6 +153,7 @@ Catatan:
 - upload file pada frontend web juga sudah aktif untuk alur `Edit Pelanggan`
 - alur edit pada frontend web juga sudah mendukung `existingFiles` dan `deleteFileIds`
 - `Kode Pelanggan` diperlakukan sebagai field opsional, tetapi jika diisi harus unik dan tidak boleh duplikat dengan pelanggan lain
+- pada sisi Google Sheets popup, nama fungsi simpan utama yang aktif adalah `savePelanggan`, bukan `savePerusahaan`
 
 ## Struktur Komponen Frontend
 
