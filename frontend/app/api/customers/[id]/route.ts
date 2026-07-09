@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { AppsScriptHttpError, deleteCustomer, getCustomerById, updateCustomer } from "@/lib/apps-script";
+import {
+  RustBackendHttpError,
+  deleteCustomerInRust,
+  getCustomerByIdFromRust,
+  updateCustomerInRust,
+} from "@/lib/rust-backend";
 import type { ApiError, ApiSuccess, CustomerRecord, CustomerUpdateInput, CustomerUploadItem } from "@/lib/customer-types";
 
 type RouteContext = {
@@ -21,7 +26,7 @@ const allowedUploadCategories = new Set(["Kontrak", "BAK-PKS", "Dokumen Lain"]);
 const maxUploadSize = 10 * 1024 * 1024;
 
 function toErrorResponse(error: unknown) {
-  if (error instanceof AppsScriptHttpError) {
+  if (error instanceof RustBackendHttpError) {
     return NextResponse.json<ApiError>(
       {
         success: false,
@@ -122,12 +127,12 @@ function normalizeDeleteFileIds(fileIds: unknown) {
 export async function GET(_: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const result = await getCustomerById(decodeURIComponent(id));
+    const result = await getCustomerByIdFromRust(decodeURIComponent(id));
 
     return NextResponse.json<ApiSuccess<CustomerRecord>>({
       success: true,
-      data: result.data,
-      message: result.message,
+      data: result,
+      message: "Detail pelanggan berhasil dimuat.",
     });
   } catch (error) {
     return toErrorResponse(error);
@@ -137,12 +142,14 @@ export async function GET(_: Request, context: RouteContext) {
 export async function DELETE(_: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const result = await deleteCustomer(decodeURIComponent(id));
+    const decodedId = decodeURIComponent(id);
+    const existing = await getCustomerByIdFromRust(decodedId);
+    await deleteCustomerInRust(decodedId);
 
     return NextResponse.json<ApiSuccess<CustomerRecord>>({
       success: true,
-      data: result.data,
-      message: result.message,
+      data: existing,
+      message: "Pelanggan berhasil dihapus.",
     });
   } catch (error) {
     return toErrorResponse(error);
@@ -167,23 +174,22 @@ export async function PUT(request: Request, context: RouteContext) {
     }
 
     const deleteFileIds = normalizeDeleteFileIds(payload.deleteFileIds);
-
-    const result = await updateCustomer({
-      id: decodeURIComponent(id),
-      kodePelanggan: String(payload.kodePelanggan || "").trim(),
-      namaPelanggan,
-      pic: String(payload.pic || "").trim(),
-      telepon: String(payload.telepon || "").trim(),
-      email: String(payload.email || "").trim(),
-      keterangan: String(payload.keterangan || "").trim(),
-      deleteFileIds,
+    const result = await updateCustomerInRust(decodeURIComponent(id), {
+      kode_pelanggan: String(payload.kodePelanggan || "").trim() || null,
+      nama_pelanggan: namaPelanggan,
+      pic: String(payload.pic || "").trim() || null,
+      telepon: String(payload.telepon || "").trim() || null,
+      email: String(payload.email || "").trim() || null,
+      link_folder_berkas: String(payload.linkFolderBerkas || "").trim() || null,
+      keterangan: String(payload.keterangan || "").trim() || null,
       uploadItems,
+      deleteFileIds,
     });
 
     return NextResponse.json<ApiSuccess<CustomerRecord>>({
       success: true,
-      data: result.data,
-      message: result.message,
+      data: result,
+      message: "Pelanggan berhasil diperbarui.",
     });
   } catch (error) {
     return toErrorResponse(error);

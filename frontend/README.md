@@ -1,4 +1,4 @@
-This is the `Next.js` frontend for the FO KIMA admin portal. In V1, it focuses on the customer master flow with additional read-only access to `Kontrak Lengkap`, and talks to `Google Apps Script Web App` through internal route handlers.
+This is the `Next.js` frontend for the FO KIMA admin portal. The active internal routes now talk to the Rust backend for `Pelanggan` and read-only `Kontrak Lengkap`.
 
 ## Getting Started
 
@@ -6,8 +6,7 @@ This is the `Next.js` frontend for the FO KIMA admin portal. In V1, it focuses o
 2. Fill these variables:
 
 ```bash
-APPS_SCRIPT_BASE_URL=...
-APPS_SCRIPT_INTERNAL_SECRET=...
+BACKEND_API_BASE_URL=http://127.0.0.1:8080
 ```
 
 3. Run the development server:
@@ -18,29 +17,29 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-Current V1 capabilities:
+Current capabilities:
 
 - list pelanggan
 - detail pelanggan
 - tambah pelanggan
-- upload berkas pelanggan saat tambah pelanggan
 - edit pelanggan
-- lihat file existing pelanggan saat edit
-- tandai file existing untuk dihapus saat edit
-- upload berkas tambahan saat edit pelanggan
 - hapus pelanggan
-- list kontrak read-only
-- detail kontrak read-only
+- simpan link folder berkas pelanggan
+- upload/hapus berkas pelanggan ke Google Drive
+- list `Kontrak Lengkap` read-only
+- detail `Kontrak Lengkap` read-only
 - tampilkan `Kategori`, `Core`, dan `Sharing Core` pada list kontrak
 
 Notes:
 
 - browser hanya memanggil `/api/customers`
-- browser juga memanggil `/api/contracts` untuk list kontrak
-- `Next.js` server meneruskan request ke Apps Script memakai shared secret
-- upload file pelanggan aktif untuk alur `Tambah Pelanggan` dan `Edit Pelanggan`
-- file upload dikirim sebagai payload JSON base64 ke route handler internal, lalu diteruskan ke `Apps Script Web App`
-- format folder pelanggan tetap mengikuti Apps Script: folder utama pelanggan dengan subfolder `Kontrak`, `BAK-PKS`, dan `Dokumen Lain`
+- browser juga memanggil `/api/kontrak-lengkap` untuk list `Kontrak Lengkap`
+- `Next.js` server sekarang meneruskan request utama ke backend Rust melalui `BACKEND_API_BASE_URL`
+- route `/api/kontrak-lengkap` di Next.js memakai endpoint backend `/api/kontrak-lengkap`
+- upload/hapus berkas pelanggan diteruskan ke backend Rust dan diproses ke Google Drive
+- pada mode tambah pelanggan, field `Link Folder Berkas` tidak ditampilkan
+- saat pelanggan baru disimpan tanpa link folder, backend Rust normalnya membuat folder pelanggan otomatis lalu menyimpan URL folder ke MySQL
+- pada mode edit pelanggan, user bisa mengisi atau mengganti `Link Folder Berkas` secara manual
 - menu `Pelanggan` dan `Kontrak Lengkap` tidak lagi memakai tombol `Muat Ulang`
 - perpindahan menu dioptimalkan dengan komponen persistent mount dan cache memory ringan untuk list utama
 

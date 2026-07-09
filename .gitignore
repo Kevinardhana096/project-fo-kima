@@ -1,5 +1,10 @@
 .agents/
 .codex/
 .playwright-mcp/
+.env.docker
+backend/target/
+backend/.env
+backend/credentials*.json
+docker/mysql/data/
 sidebar-*.png
 test*.js

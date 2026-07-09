@@ -1,211 +1,112 @@
 # Dokumentasi Arsitektur Website Next.js
 
-Dokumen ini merangkum arah arsitektur website yang akan memakai spreadsheet dan Apps Script sebagai backend operasional awal.
+Dokumen ini merangkum kondisi website `Next.js` yang aktif saat ini setelah jalur `Pelanggan` dan `Kontrak Lengkap` dipindahkan ke backend Rust.
 
-## Tujuan
+## Ringkasan Status
 
-- membangun website admin/internal dengan `Next.js`
-- memakai spreadsheet sebagai sumber data operasional awal
-- memakai Apps Script sebagai lapisan logika bisnis dan integrasi Google Drive
-- menjaga kemungkinan migrasi ke database proper di tahap berikutnya
+- browser tetap memanggil route internal `Next.js`
+- route internal `Next.js` untuk `customers` dan `kontrak-lengkap` sekarang meneruskan request ke backend Rust
+- backend Rust membaca dan menulis data ke MySQL
+- Spreadsheet dan Apps Script tidak lagi menjadi jalur aktif untuk route frontend yang sudah dipindahkan
+- tab `Pelanggan` di Google Sheets disinkronkan dari MySQL oleh backend Rust setelah create/update/delete pelanggan
+- tab `Kontrak Lengkap` di Google Sheets disinkronkan dari MySQL oleh backend Rust setelah create/update/delete/perpanjang/upgrade kontrak
+- link folder berkas pelanggan disimpan melalui jalur Rust/MySQL
+- upload/hapus berkas pelanggan sudah diproses backend Rust ke Google Drive
+- upload/hapus berkas kontrak sudah diproses backend Rust ke Google Drive
 
-## Posisi Sistem Saat Ini
-
-Komponen yang sudah ada:
-
-- Google Sheets sebagai penyimpanan data utama
-- Google Apps Script sebagai business logic
-- Google Drive sebagai penyimpanan dokumen
-- endpoint `Apps Script Web App` sudah mulai disiapkan untuk modul `Pelanggan`
-- struktur bisnis kontrak lokasi sudah mendukung:
-  - tambah kontrak
-  - edit kontrak
-  - perpanjangan
-  - upgrade paket
-
-## Arsitektur yang Disarankan
-
-Arsitektur tahap awal:
+## Arsitektur Aktif
 
 - `Next.js`
-  - frontend admin portal
-  - route handler internal sebagai gateway server-to-server
-  - halaman list, detail, filter, dan dashboard
-  - form yang memanggil endpoint backend
-- `Apps Script Web App / endpoint wrapper`
+  - UI admin/internal
+  - route handler internal `/api/customers` dan `/api/kontrak-lengkap`
+  - adapter response agar UI lama tetap jalan
+- `Rust Backend`
+  - API utama bisnis
   - validasi data
-  - eksekusi logika bisnis
-  - baca/tulis ke spreadsheet
-  - upload metadata file ke Drive
-- `Google Sheets`
-  - penyimpanan data operasional
-  - audit visual/manual
-  - sumber histori kontrak
-- `Google Drive`
-  - penyimpanan dokumen kontrak per lokasi dan periode
+  - CRUD `pelanggan`
+  - CRUD `Kontrak Lengkap`
+  - `perpanjang`
+  - `upgrade`
+- `MySQL`
+  - penyimpanan utama data relasional
+  - histori `Kontrak Lengkap` pada tabel internal `lokasi`
 
-## Alur Data
+## Alur Data Aktif
 
-Alur request tahap awal:
+1. user membuka website `Next.js`
+2. browser memanggil route internal `Next.js`
+3. route internal `Next.js` memanggil backend Rust melalui `BACKEND_API_BASE_URL`
+4. backend Rust memproses request dan berinteraksi dengan MySQL
+5. response dikembalikan ke route `Next.js`
+6. route `Next.js` mengembalikan data ke browser
 
-1. User memakai website `Next.js`.
-2. Browser memanggil route handler internal `Next.js`.
-3. Route handler `Next.js` meneruskan request ke `Apps Script Web App` dengan shared secret server-to-server.
-4. Apps Script menjalankan business logic.
-5. Data disimpan ke Google Sheets dan file disimpan ke Google Drive.
-6. Response dikembalikan ke frontend.
+## Modul yang Sudah Dipindahkan
 
-Implementasi V1 saat ini:
+- `Pelanggan`
+  - list
+  - detail
+  - tambah
+  - edit
+  - hapus
+  - simpan link folder berkas manual
+  - upload dan hapus berkas pelanggan ke Google Drive
+- `Kontrak Lengkap`
+  - list
+  - detail
+  - tambah
+  - edit
+  - hapus
+  - perpanjang
+  - upgrade
+  - upload dan hapus berkas kontrak ke Google Drive
 
-- fokus awal ada pada tab `Pelanggan`, dengan tambahan akses baca untuk `Kontrak Lengkap`
-- frontend web sudah mendukung list, detail, tambah, edit, dan hapus pelanggan
-- upload file dari frontend web sudah aktif untuk `Tambah Pelanggan` dan `Edit Pelanggan`
-- mode edit pelanggan pada frontend juga sudah mendukung:
-  - membaca daftar file existing dari Google Drive
-  - menandai file existing untuk dihapus saat simpan
-  - upload file tambahan ke folder pelanggan
-- upload file dikirim dari browser ke route handler `Next.js` sebagai payload JSON base64, lalu diteruskan ke `Apps Script Web App`
-- pada layer Apps Script spreadsheet popup, aksi simpan pelanggan sekarang memakai fungsi `savePelanggan(formData)`; alias `savePerusahaan(formData)` disisakan untuk kompatibilitas alur lama
-- spreadsheet UI tetap dipertahankan sebagai fallback operasional dan audit visual
+## Modul yang Belum Dipindahkan Penuh
 
-Implementasi tahap berikutnya yang aktif sekarang:
+- billing kontrak dari frontend
+- sinkronisasi Google Sheets untuk modul selain `Pelanggan` dan `Kontrak Lengkap`
 
-- akses baca `Kontrak Lengkap` mulai dibuka ke frontend web
-- scope kontrak masih `read-only`
-- frontend menampilkan list kontrak, filter dasar, dan detail kontrak tanpa aksi tulis
-- struktur kontrak yang dibaca frontend sudah mengikuti perubahan sheet terbaru:
-  - `kategori`
-  - `core`
-  - `sharing_core`
-- frontend tidak lagi memakai tombol `Muat Ulang` pada menu `Pelanggan` dan `Kontrak Lengkap`
-- perpindahan menu `Pelanggan` dan `Kontrak Lengkap` dioptimalkan dengan:
-  - komponen tetap mounted setelah pertama kali dibuka
-  - cache memory ringan untuk list utama
+## Struktur Frontend
 
-## Pembagian Tanggung Jawab
+- `frontend/app/api/customers/`
+  - adapter route customer ke backend Rust
+- `frontend/app/api/kontrak-lengkap/`
+  - adapter route `Kontrak Lengkap` ke backend Rust untuk list/detail/create/update/delete/perpanjang/upgrade
+- `frontend/lib/rust-backend.ts`
+  - wrapper HTTP server-to-server
+  - mapper request/response backend Rust ke bentuk data UI frontend
 
-### Next.js
+## Catatan Teknis
 
-- route handler internal untuk menjaga secret Apps Script tetap di server
-- tampilan list dan detail data pelanggan
-- form tambah pelanggan, edit pelanggan, upload berkas pelanggan, dan aksi hapus pelanggan
-- sinkronisasi detail pelanggan saat mode edit agar daftar file existing tetap akurat
-- validasi ringan di sisi UI
-- dashboard dan reporting sederhana untuk tahap berikutnya
+- `BACKEND_API_BASE_URL` wajib mengarah ke backend Rust yang aktif, default lokal `http://127.0.0.1:8080`
+- route frontend sengaja mempertahankan format respons lama agar komponen UI tidak perlu dirombak sekaligus
+- route frontend `/api/kontrak-lengkap` memanggil endpoint backend `/api/kontrak-lengkap`
+- route frontend lama `/api/contracts` masih tersedia sebagai alias kompatibilitas
+- endpoint backend lama `/api/lokasi` masih tersedia sebagai alias kompatibilitas, tetapi bukan nama utama untuk integrasi frontend baru
+- link folder berkas pelanggan disimpan ke kolom `link_folder_berkas`
+- upload/hapus berkas pelanggan membutuhkan `GOOGLE_APPLICATION_CREDENTIALS` dan `PELANGGAN_ROOT_FOLDER_ID` di environment backend
+- upload/hapus berkas kontrak membutuhkan `GOOGLE_APPLICATION_CREDENTIALS` dan `LOKASI_ROOT_FOLDER_ID` di environment backend
+- sinkronisasi Google Sheets membutuhkan `GOOGLE_APPLICATION_CREDENTIALS` dan `SPREADSHEET_ID` di environment backend
+- sinkronisasi Google Sheets berjalan di background task; kegagalan sync dicatat di log backend dan tidak menggagalkan response API pelanggan
+- kegagalan upload/hapus Google Drive pada submit pelanggan dikembalikan sebagai error API agar user tahu operasi belum selesai
+- operasi create folder, list file, upload file, dan hapus file Google Drive pelanggan masih berjalan sinkron pada request utama backend
+- field `Link Folder Berkas` hanya ditampilkan di mode edit pelanggan; pada mode tambah, backend normalnya membuat folder pelanggan lalu mengisi `link_folder_berkas` otomatis saat simpan berhasil
+- sinkronisasi Google Sheets untuk `Kontrak Lengkap` berjalan sebagai background task setelah mutasi kontrak berhasil
+- operasi Google Drive kontrak pada submit/hapus kontrak masih berjalan sinkron pada request utama backend
+- frontend mengirim payload kontrak dalam bentuk UI `camelCase`; wrapper server `rust-backend.ts` memetakan payload itu ke bentuk Rust `snake_case`
+- route frontend lama `/api/contracts` masih tersedia sebagai alias read-compatible untuk list/detail, tetapi jalur utama UI baru memakai `/api/kontrak-lengkap`
 
-## Struktur Frontend Saat Ini
+## Yang Sudah Tidak Relevan
 
-Struktur komponen frontend sekarang dipecah per menu agar modular:
+Bagian berikut tidak lagi menggambarkan jalur aktif frontend saat ini:
 
-- `frontend/app/_components/admin/pelanggan/`
-  - `customer-admin.tsx` sebagai container/state utama
-  - `customer-table.tsx` untuk tabel pelanggan
-  - `customer-form-dialog.tsx` untuk modal tambah/edit
-  - `upload-utils.ts` untuk helper upload
-  - `types.ts` untuk tipe lokal komponen
-- `frontend/app/_components/admin/kontrak/`
-  - `contracts-readonly.tsx` untuk list/detail kontrak read-only
-  - `contract-utils.ts` untuk formatter dan helper status
+- `Apps Script Web App` sebagai backend aktif untuk route `customers`
+- `Apps Script Web App` sebagai backend aktif untuk route `Kontrak Lengkap`
+- shared secret Apps Script sebagai dependency wajib untuk frontend lokal
 
-Pendekatan ini dipakai agar setiap menu punya folder sendiri dan lebih mudah dikembangkan tanpa menumpuk semua tampilan dalam satu file besar.
+## Arah Lanjutan
 
-### Apps Script
+Langkah berikutnya yang disarankan:
 
-- validasi bisnis final
-- endpoint HTTP `doGet/doPost` untuk resource `customers`
-- generate `ID Kontrak`
-- penentuan status kontrak
-- relasi `ID Kontrak Sebelumnya`
-- penyisipan baris pada grup `Pelanggan + Lokasi`
-- validasi `Kategori`
-- validasi eksklusif `Core xor Sharing Core`
-- validasi dropdown `Sharing Core`
-- pembuatan folder periode
-- upload dan linking dokumen
-
-### Spreadsheet
-
-- menyimpan data master operasional
-- menyediakan histori kontrak yang bisa diaudit manual
-- menjadi fallback operasional jika website belum dipakai penuh
-
-## Model Entitas Awal
-
-Entitas penting yang perlu dianggap stabil di website:
-
-- `contract`
-  - `id_kontrak`
-  - `previous_contract_id`
-  - `kategori`
-  - `kode_perusahaan`
-  - `nama_perusahaan`
-  - `lokasi`
-  - `periode_awal`
-  - `periode_berakhir`
-  - `core`
-  - `sharing_core`
-  - `nilai_kontrak`
-  - `biaya_aktivasi`
-  - `perbulan`
-  - `nilai_periode_aktif`
-  - `status_kontrak`
-  - `berkas_url`
-  - `keterangan`
-- `billing`
-  - referensi ke `id_kontrak`
-  - data invoice/tagihan
-- `customer`
-  - data pelanggan
-
-## Endpoint yang Disarankan
-
-Endpoint awal yang kemungkinan dibutuhkan:
-
-- `GET /api/customers`
-- `GET /api/customers/:id`
-- `POST /api/customers`
-- `DELETE /api/customers/:id`
-- `GET /api/contracts`
-- `GET /api/contracts/:id`
-- `GET /api/contracts`
-- `GET /api/contracts/:id`
-- `POST /api/contracts`
-- `POST /api/contracts/:id/renew`
-- `POST /api/contracts/:id/upgrade`
-- `PUT /api/contracts/:id`
-- `DELETE /api/contracts/:id`
-- `GET /api/billing/:contractId`
-
-Catatan:
-
-- pada implementasi V1, endpoint `customers` sudah memakai route handler `Next.js` yang memanggil Apps Script Web App
-- shared secret integrasi disimpan di environment server `Next.js` dan `Script Properties` Apps Script
-- jika nanti migrasi ke database proper, kontrak API bisa dipertahankan agar frontend minim perubahan
-
-## Risiko Jika Tetap Mengandalkan Spreadsheet Terlalu Lama
-
-- rawan bentrok saat banyak user update bersamaan
-- query dan reporting makin berat saat data membesar
-- validasi makin tersebar bila tidak dijaga ketat
-- histori kompleks lebih sulit dioptimalkan
-- integrasi auth dan permission lebih terbatas
-
-## Strategi yang Disarankan
-
-Strategi implementasi:
-
-1. tahap 1:
-   - spreadsheet + Apps Script tetap jadi backend operasional
-   - `Next.js` dibangun sebagai UI admin
-2. tahap 2:
-   - tetapkan contract API yang stabil
-   - mulai kurangi ketergantungan UI langsung ke spreadsheet
-3. tahap 3:
-   - migrasikan data inti ke database proper seperti PostgreSQL
-   - pertahankan spreadsheet hanya untuk audit/ekspor bila perlu
-
-## Kesimpulan
-
-Untuk kondisi sekarang, spreadsheet dan Apps Script masih layak dipakai sebagai backend awal website `Next.js`, terutama untuk mempercepat delivery dan menjaga fleksibilitas bisnis.
-
-Tetapi arsitektur ini sebaiknya diposisikan sebagai fase transisi. Saat alur bisnis stabil dan user bertambah, data inti perlu dipindahkan ke database proper agar performa, validasi, dan maintainability tetap sehat.
+1. hubungkan modul billing kontrak ke backend Rust/MySQL
+2. kuatkan mekanisme sinkronisasi Google Sheets agar task background tidak saling tumpang tindih saat traffic tinggi
+3. tambahkan pengujian end-to-end untuk create/update/perpanjang/upgrade/hapus kontrak beserta berkas Drive

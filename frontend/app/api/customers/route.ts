@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { AppsScriptHttpError, createCustomer, listCustomers } from "@/lib/apps-script";
+import { RustBackendHttpError, createCustomerInRust, listCustomersFromRust } from "@/lib/rust-backend";
 import type { ApiError, ApiSuccess, CustomerCreateInput, CustomerRecord, CustomerUploadItem } from "@/lib/customer-types";
 
 const allowedUploadMimeTypes = new Set([
@@ -15,7 +15,7 @@ const allowedUploadCategories = new Set(["Kontrak", "BAK-PKS", "Dokumen Lain"]);
 const maxUploadSize = 10 * 1024 * 1024;
 
 function toErrorResponse(error: unknown) {
-  if (error instanceof AppsScriptHttpError) {
+  if (error instanceof RustBackendHttpError) {
     return NextResponse.json<ApiError>(
       {
         success: false,
@@ -106,14 +106,20 @@ function normalizeUploadItems(uploadItems: unknown): CustomerUploadItem[] {
   });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const result = await listCustomers();
+    const url = new URL(request.url);
+    const search = url.searchParams.get("search") || undefined;
+    const page = Number(url.searchParams.get("page")) || 1;
+    const pageSize = Number(url.searchParams.get("page_size")) || 20;
+
+    const result = await listCustomersFromRust({ search, page, pageSize });
 
     return NextResponse.json<ApiSuccess<CustomerRecord[]>>({
       success: true,
       data: result.data,
-      message: result.message,
+      meta: result.meta,
+      message: "Data pelanggan berhasil dimuat.",
     });
   } catch (error) {
     return toErrorResponse(error);
@@ -136,21 +142,22 @@ export async function POST(request: Request) {
       return invalidPayload(error instanceof Error ? error.message : "Berkas pelanggan tidak valid.");
     }
 
-    const result = await createCustomer({
-      kodePelanggan: String(payload.kodePelanggan || "").trim(),
-      namaPelanggan,
-      pic: String(payload.pic || "").trim(),
-      telepon: String(payload.telepon || "").trim(),
-      email: String(payload.email || "").trim(),
-      keterangan: String(payload.keterangan || "").trim(),
+    const result = await createCustomerInRust({
+      kode_pelanggan: String(payload.kodePelanggan || "").trim() || null,
+      nama_pelanggan: namaPelanggan,
+      pic: String(payload.pic || "").trim() || null,
+      telepon: String(payload.telepon || "").trim() || null,
+      email: String(payload.email || "").trim() || null,
+      link_folder_berkas: String(payload.linkFolderBerkas || "").trim() || null,
+      keterangan: String(payload.keterangan || "").trim() || null,
       uploadItems,
     });
 
     return NextResponse.json<ApiSuccess<CustomerRecord>>(
       {
         success: true,
-        data: result.data,
-        message: result.message,
+        data: result,
+        message: "Pelanggan berhasil ditambahkan.",
       },
       { status: 201 },
     );

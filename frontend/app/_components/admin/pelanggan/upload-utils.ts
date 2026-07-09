@@ -11,6 +11,7 @@ export const emptyForm: CustomerCreateInput = {
   telepon: "",
   email: "",
   keterangan: "",
+  linkFolderBerkas: "",
 };
 
 export const uploadCategories = ["Kontrak", "BAK-PKS", "Dokumen Lain"];

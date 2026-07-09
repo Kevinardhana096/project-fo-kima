@@ -1,5 +1,16 @@
 # PRD Sistem Monitoring FO KIMA Berbasis Spreadsheet
 
+## Status Dokumen
+
+Dokumen ini adalah baseline historis rancangan awal saat sistem masih direncanakan berbasis Google Sheets dan Google Apps Script.
+
+Dokumen ini bukan acuan status implementasi aktif per 9 Juli 2026. Untuk kondisi sistem yang sudah berjalan sekarang, rujuk ke:
+
+- `docs/ARCHITECTURE_PRD.md`
+- `docs/Dokumentasi_Arsitektur_Website_NextJS.md`
+- `docs/Penjelasan_Tab_Pelanggan.md`
+- `docs/Penjelasan_Tab_Kontrak_Lengkap.md`
+
 ## 1. Ringkasan
 
 Dokumen ini mendefinisikan kebutuhan produk untuk membangun sistem monitoring kontrak dan penagihan FO KIMA berbasis spreadsheet terpusat. Sistem baru akan menggantikan proses input manual pada file Excel yang kompleks menjadi alur yang lebih praktis melalui UI form/modal, dengan data disimpan pada satu spreadsheet pusat.
@@ -21,8 +32,8 @@ File Excel saat ini memiliki beberapa sheet monitoring dan master data dengan st
 Tujuan sistem baru:
 
 - menyediakan spreadsheet terpusat sebagai sumber data tunggal
-- mempermudah input data perusahaan, kontrak, dan penagihan melalui popup form
-- mempermudah input lokasi dengan memilih perusahaan yang sudah terdaftar
+- mempermudah input data pelanggan, kontrak, dan penagihan melalui popup form
+- mempermudah input lokasi dengan memilih pelanggan yang sudah terdaftar
 - menjaga histori saat terjadi perubahan atau upgrade paket
 - menambahkan record baru secara otomatis ke sheet master
 - menghasilkan sheet monitoring yang lebih mudah dibaca dari data master
@@ -32,7 +43,7 @@ Tujuan sistem baru:
 
 Indikator keberhasilan awal:
 
-- user dapat menambahkan data perusahaan/kontrak tanpa edit manual baris spreadsheet
+- user dapat menambahkan data pelanggan/kontrak tanpa edit manual baris spreadsheet
 - data baru tersimpan ke sheet master dalam format tabel datar
 - monitoring masa berlaku kontrak dan status penagihan dapat dilihat dari sheet turunan
 - kesalahan input berkurang melalui validasi field dan dropdown referensi
@@ -72,14 +83,14 @@ Di luar cakupan versi 1:
 
 Sistem harus menyelesaikan kebutuhan berikut:
 
-- user ingin menambah perusahaan baru tanpa mengedit struktur sheet manual
+- user ingin menambah pelanggan baru tanpa mengedit struktur sheet manual
 - user ingin menambah kontrak baru dengan field yang konsisten
 - user ingin data tersimpan pada satu tempat agar monitoring tidak tercecer
 - user ingin monitoring kontrak jatuh tempo dari data yang selalu terbarui
 - user ingin laporan dibuat dari data yang rapi, bukan dari sheet merge yang sulit diproses
 - user ingin mengunggah dokumen pendukung langsung dari form dan melihat link berkas langsung dari spreadsheet
 - user ingin berkas kontrak, invoice, dan dokumen layanan melekat ke lokasi yang dilayani
-- user ingin ada tab khusus perusahaan agar data provider dapat dilihat terpisah
+- user ingin ada tab khusus pelanggan agar data provider dapat dilihat terpisah
 
 ## 8. Solusi yang Diusulkan
 
@@ -126,7 +137,7 @@ Setiap submit form akan menambah satu baris baru ke sheet terkait. Untuk form be
 - Sebagai staf penagihan, saya ingin menambah data invoice dan tanggal bayar agar histori penagihan tercatat.
 - Sebagai staf penagihan, saya ingin melihat invoice yang belum dibayar agar mudah ditindaklanjuti.
 - Sebagai admin atau staf, saya ingin mengunggah berkas pendukung dari form agar file otomatis tersimpan di Google Drive dan link-nya tercatat di spreadsheet.
-- Sebagai admin, saya ingin tab khusus perusahaan agar data perusahaan/provider tidak bercampur dengan data operasional lokasi.
+- Sebagai admin, saya ingin tab khusus pelanggan agar data pelanggan/provider tidak bercampur dengan data operasional lokasi.
 
 ## 10. Kebutuhan Fungsional
 
@@ -137,24 +148,24 @@ Setiap submit form akan menambah satu baris baru ke sheet terkait. Untuk form be
 - Satu baris harus merepresentasikan satu record yang jelas.
 - Setiap record harus memiliki ID unik atau key yang stabil.
 
-### 10.2 Input Data Perusahaan
+### 10.2 Input Data Pelanggan
 
-- User harus bisa membuka form tambah perusahaan dari menu atau tombol.
+- User harus bisa membuka form tambah pelanggan dari menu atau tombol.
 - Form minimal berisi:
-  - kode perusahaan
-  - nama perusahaan
+  - kode pelanggan
+  - nama pelanggan
   - lokasi
   - nama PIC jika diperlukan
   - keterangan
-- Sistem harus menolak kode perusahaan yang duplikat.
+- Sistem harus menolak kode pelanggan yang duplikat.
 
 ### 10.3 Input Data Kontrak
 
 - User harus bisa menambah kontrak baru melalui form.
 - Tombol utama untuk proses ini harus menggunakan istilah `Tambah Kontrak Lokasi`.
 - Form minimal berisi:
-  - kode perusahaan
-  - nama perusahaan atau auto-lookup dari kode
+  - kode pelanggan
+  - nama pelanggan atau auto-lookup dari kode
   - paket
   - lokasi
   - periode awal
@@ -186,7 +197,7 @@ Setiap submit form akan menambah satu baris baru ke sheet terkait. Untuk form be
 
 - User harus bisa menjalankan aksi `Ubah/Upgrade Paket` dari data kontrak yang sudah ada.
 - Saat upgrade paket dilakukan, sistem harus membuat record kontrak baru, bukan menimpa kontrak lama.
-- Sistem hanya boleh mengizinkan upgrade dari kontrak `Aktif` terbaru pada grup perusahaan dan lokasi yang sama.
+- Sistem hanya boleh mengizinkan upgrade dari kontrak `Aktif` terbaru pada grup pelanggan dan lokasi yang sama.
 - Sistem harus menjaga relasi histori antara kontrak lama dan kontrak baru.
 - Form upgrade paket minimal berisi:
   - kontrak asal
@@ -212,9 +223,9 @@ Setiap submit form akan menambah satu baris baru ke sheet terkait. Untuk form be
 
 - User harus bisa menjalankan aksi `Perpanjang` dari data kontrak yang sudah ada.
 - Perpanjangan harus membuat record kontrak baru, bukan menimpa kontrak lama.
-- Sistem hanya boleh mengizinkan perpanjangan dari kontrak terbaru pada grup perusahaan dan lokasi yang sama.
+- Sistem hanya boleh mengizinkan perpanjangan dari kontrak terbaru pada grup pelanggan dan lokasi yang sama.
 - Sistem harus menyimpan referensi `previous_contract_id` pada kontrak baru.
-- Sistem harus menyisipkan kontrak baru ke grup perusahaan dan lokasi yang sama, bukan di paling bawah sheet.
+- Sistem harus menyisipkan kontrak baru ke grup pelanggan dan lokasi yang sama, bukan di paling bawah sheet.
 - Sistem harus memberi status kontrak baru:
   - `Aktif` bila tanggal mulai sudah berlaku
   - `Belum Beroperasi` bila tanggal mulai masih di masa depan
@@ -225,14 +236,14 @@ Setiap submit form akan menambah satu baris baru ke sheet terkait. Untuk form be
 
 - User harus bisa menambah lokasi/customer baru melalui form kontrak lokasi.
 - Form lokasi minimal berisi:
-  - perusahaan
-  - kode perusahaan terisi otomatis dari perusahaan terpilih
+  - pelanggan
+  - kode pelanggan terisi otomatis dari pelanggan terpilih
   - nama lokasi
   - alamat lokasi bila dipakai
   - keterangan
-- User harus memilih perusahaan dari daftar perusahaan yang sudah ada.
-- Sistem tidak boleh meminta user mengetik ulang nama perusahaan bila data perusahaan sudah tersedia.
-- Sistem harus menyimpan relasi lokasi ke data perusahaan yang dipilih.
+- User harus memilih pelanggan dari daftar pelanggan yang sudah ada.
+- Sistem tidak boleh meminta user mengetik ulang nama pelanggan bila data pelanggan sudah tersedia.
+- Sistem harus menyimpan relasi lokasi ke data pelanggan yang dipilih.
 
 ### 10.5 Input Data Penagihan
 
@@ -352,8 +363,8 @@ Tab ini adalah tampilan operasional dari `Kontrak Lengkap` yang hanya menampilka
 Kolom yang disarankan:
 
 - `contract_id`
-- `kode_perusahaan`
-- `nama_perusahaan`
+- `kode_pelanggan`
+- `nama_pelanggan`
 - `lokasi`
 - `periode_awal`
 - `periode_akhir`
@@ -369,15 +380,15 @@ Kolom yang disarankan:
 - `billing`
 - `keterangan`
 
-### 12.3 Tab `Perusahaan`
+### 12.3 Tab `Pelanggan`
 
-Tab ini menjadi tabel perusahaan/provider sekaligus histori kerja sama perusahaan tersebut dengan PT KIMA.
+Tab ini menjadi tabel pelanggan/provider sekaligus histori kerja sama pelanggan tersebut dengan PT KIMA.
 
 Kolom yang disarankan:
 
 - `no`
-- `kode_perusahaan`
-- `nama_perusahaan`
+- `kode_pelanggan`
+- `nama_pelanggan`
 - `periode_awal`
 - `periode_berakhir`
 - `no_kontrak_pks`
@@ -385,14 +396,14 @@ Kolom yang disarankan:
 - `pic`
 - `telepon`
 - `email`
-- `berkas_perusahaan`
+- `berkas_pelanggan`
 - `keterangan`
 - `aksi`
 
 Catatan:
 
 - `no_kontrak_pks` dapat ditampilkan sebagai hyperlink ke file kontrak aktif pada baris tersebut bila file kontrak tersedia
-- `berkas_perusahaan` tetap menyimpan link folder utama perusahaan di Google Drive
+- `berkas_pelanggan` tetap menyimpan link folder utama pelanggan di Google Drive
 - `aksi` dapat dipakai untuk operasi per baris, misalnya penghapusan data
 
 ### 12.4 Tab `Rekap Sewa Core/Sharing Core`
@@ -446,7 +457,7 @@ Karakteristik form:
 
 - `nama_pelanggan` adalah field wajib pada form `Tambah Pelanggan`
 - `kode_pelanggan` boleh kosong pada fase awal implementasi
-- `1 baris = 1 periode kerja sama perusahaan`
+- `1 baris = 1 periode kerja sama pelanggan`
 - jika ada perpanjangan kerja sama, sistem harus membuat baris baru
 - baris lama hasil perpanjangan diubah statusnya menjadi `Diperpanjang`
 - `periode_berakhir` dihitung otomatis dari `periode_awal` dan `durasi_kontrak_bulan`
@@ -479,10 +490,10 @@ Versi 1 hanya memiliki 4 tab tampilan:
 
 - tab `Kontrak Lengkap`
 - tab `Kontrak Aktif`
-- tab `Perusahaan`
+- tab `Pelanggan`
 - tab `Rekap Sewa Core/Sharing Core`
 
-Seluruh kebutuhan monitoring, histori, relasi lokasi-perusahaan, status kontrak, dan akses berkas harus tercakup melalui 4 tab tersebut.
+Seluruh kebutuhan monitoring, histori, relasi lokasi-pelanggan, status kontrak, dan akses berkas harus tercakup melalui 4 tab tersebut.
 
 ### 15.1 Tab `Kontrak Aktif`
 
@@ -493,8 +504,8 @@ Tujuan:
 Isi minimal:
 
 - contract_id
-- kode_perusahaan
-- nama_perusahaan
+- kode_pelanggan
+- nama_pelanggan
 - nama_lokasi
 - ISP
 - jenis_layanan
@@ -521,7 +532,7 @@ Tujuan:
 
 Isi minimal:
 
-- seluruh kolom penting kontrak, lokasi, perusahaan, dan dokumen
+- seluruh kolom penting kontrak, lokasi, pelanggan, dan dokumen
 - `previous_contract_id`
 - `jenis_perubahan_kontrak`
 - `alasan_perubahan`
@@ -555,19 +566,19 @@ Aturan:
 
 - data dihitung dari kontrak aktif
 - rekap dipisahkan minimal antara `Core` dan `Sharing Core`
-- bila diperlukan, rekap dapat dikelompokkan per perusahaan dan per paket
+- bila diperlukan, rekap dapat dikelompokkan per pelanggan dan per paket
 
-### 15.4 Tab `Perusahaan`
+### 15.4 Tab `Pelanggan`
 
 Tujuan:
 
-- menyediakan tabel perusahaan/provider sekaligus histori kerja samanya dengan PT KIMA
+- menyediakan tabel pelanggan/provider sekaligus histori kerja samanya dengan PT KIMA
 
 Isi minimal:
 
 - `no`
-- `kode_perusahaan`
-- `nama_perusahaan`
+- `kode_pelanggan`
+- `nama_pelanggan`
 - `periode_awal`
 - `periode_berakhir`
 - `no_kontrak_pks`
@@ -575,21 +586,21 @@ Isi minimal:
 - `pic`
 - `telepon`
 - `email`
-- `berkas_perusahaan`
+- `berkas_pelanggan`
 - `keterangan`
 - `aksi`
 
 Aturan:
 
 - input bisa dilakukan langsung di tabel pada fase awal
-- sistem UI disediakan melalui menu `Perusahaan` dan `Lokasi`
-- menu `Tambah Perusahaan` dipakai untuk membuat data perusahaan baru
+- sistem UI disediakan melalui menu `Pelanggan` dan `Lokasi`
+- menu `Tambah Pelanggan` dipakai untuk membuat data pelanggan baru
 - menu `Tambah Kontrak Lokasi` dipakai untuk membuat kontrak lokasi baru
 - menu `Perpanjangan` dipakai untuk membuat periode kerja sama baru tanpa menimpa baris lama
-- form `Tambah Perusahaan` mendukung upload banyak file
+- form `Tambah Pelanggan` mendukung upload banyak file
 - file yang diunggah dikelompokkan berdasarkan `Jenis Berkas`
 - jika file kontrak diunggah, kolom `no_kontrak_pks` pada baris tersebut dapat langsung dibuka sebagai link ke file kontrak aktif
-- kolom `berkas_perusahaan` tetap membuka folder utama perusahaan
+- kolom `berkas_pelanggan` tetap membuka folder utama pelanggan
 - kolom `aksi` dapat digunakan untuk menghapus data per baris, terutama untuk salah input atau data duplikat
 - sistem menampilkan loading dan progress bar saat proses simpan
 
@@ -605,12 +616,12 @@ Struktur awal yang direkomendasikan:
 
 Opsi lanjutan bila diperlukan:
 
-- subfolder per kode perusahaan lalu per lokasi
-- penamaan file standar dengan prefix tanggal atau kode perusahaan
+- subfolder per kode pelanggan lalu per lokasi
+- penamaan file standar dengan prefix tanggal atau kode pelanggan
 
 Aturan penamaan awal yang disarankan:
 
-- `[kode_perusahaan]_[kategori]_[nama_file_asli]`
+- `[kode_pelanggan]_[kategori]_[nama_file_asli]`
 
 ## 15B. Aturan Upload Berkas
 
@@ -637,7 +648,7 @@ Isi minimal:
 - `billing_id`
 - `contract_id`
 - `nomor_kontrak`
-- `nama_perusahaan`
+- `nama_pelanggan`
 - `lokasi`
 - `periode_tagihan`
 - `nominal_tagihan`
@@ -709,7 +720,7 @@ Tahapan migrasi:
 ### Fase 3: Apps Script
 
 - buat custom menu
-- buat modal form tambah perusahaan
+- buat modal form tambah pelanggan
 - buat modal form tambah lokasi
 - buat modal form tambah kontrak
 - buat aksi atau form upgrade paket
@@ -724,7 +735,7 @@ Tahapan migrasi:
 - bangun tab `Kontrak Aktif`
 - bangun tab `Kontrak Lengkap`
 - bangun tab `Rekap Sewa Core/Sharing Core`
-- bangun tab `Perusahaan`
+- bangun tab `Pelanggan`
 - tambahkan filter dan status otomatis
 
 ### Fase 5: UAT
@@ -739,7 +750,7 @@ Tahapan migrasi:
 Versi 1 dianggap selesai jika:
 
 - spreadsheet pusat aktif dan bisa diakses user terkait
-- form popup untuk tambah perusahaan, lokasi, dan kontrak berjalan
+- form popup untuk tambah pelanggan, lokasi, dan kontrak berjalan
 - alur upgrade paket berjalan dengan pembuatan kontrak baru dan penonaktifan kontrak lama
 - form atau alur input berkas dan link Drive berjalan
 - upload file dari form ke Google Drive berjalan
@@ -747,7 +758,7 @@ Versi 1 dianggap selesai jika:
 - data masuk otomatis ke sheet yang benar
 - monitoring dasar dapat menampilkan status kontrak dan penagihan
 - tab `Kontrak Aktif`, `Kontrak Lengkap`, dan `Rekap Sewa Core/Sharing Core` tampil dan terisi benar
-- tab `Perusahaan` tampil dan merangkum data provider dengan benar
+- tab `Pelanggan` tampil dan merangkum data provider dengan benar
 - user tidak perlu lagi menambah data utama dengan edit manual baris spreadsheet
 
 ## 20. Rekomendasi Keputusan Awal

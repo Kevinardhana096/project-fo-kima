@@ -36,6 +36,7 @@ export type CustomerCreateInput = {
   telepon: string;
   email: string;
   keterangan: string;
+  linkFolderBerkas?: string;
   uploadItems?: CustomerUploadItem[];
 };
 
@@ -44,10 +45,17 @@ export type CustomerUpdateInput = CustomerCreateInput & {
   deleteFileIds?: string[];
 };
 
+export type ListMeta = {
+  page: number;
+  page_size: number;
+  total: number;
+};
+
 export type ApiSuccess<T> = {
   success: true;
   message?: string;
   data: T;
+  meta?: ListMeta;
 };
 
 export type ApiError = {
@@ -61,31 +69,72 @@ export type ApiError = {
 export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
 export type ContractRecord = {
-  id: string;
-  rowNumber: number;
-  no: number | string;
-  idKontrak: string;
-  aksi: string;
-  kategori: string;
-  previousIdKontrak: string;
-  kodePelanggan: string;
+  id: number;
+  kodeKontrak: string;
+  pelangganId: number;
+  kodePelanggan?: string;
   namaPelanggan: string;
-  lokasi: string;
-  sisaWaktu: string;
+  previousLokasiId?: number;
+  kategori: string;
+  namaLokasi: string;
+  core?: string;
+  sharingCore?: string;
   periodeAwal: string;
-  durasiKontrak: number | string;
   periodeBerakhir: string;
-  noKontrak: string;
-  noKontrakUrl: string;
-  core: string;
-  sharingCore: string;
-  paket: string;
+  durasiKontrakBulan?: number;
+  noKontrak?: string;
   nilaiKontrak: number;
   biayaAktivasi: number;
   perbulan: number;
   nilaiPeriodeAktif: number;
   statusKontrak: string;
-  berkasUrl: string;
-  billingLabel: string;
-  keterangan: string;
+  jenisPerubahanKontrak?: string;
+  alasanPerubahan?: string;
+  linkFolderBerkas?: string;
+  keterangan?: string;
+  createdAt: string;
+  updatedAt: string;
+  existingFiles?: CustomerFileRecord[];
+};
+
+export type ContractCreateInput = {
+  pelangganId: number;
+  kategori: string;
+  namaLokasi: string;
+  core?: string;
+  sharingCore?: string;
+  periodeAwal: string;
+  periodeBerakhir?: string;
+  durasiKontrakBulan?: number;
+  noKontrak?: string;
+  nilaiKontrak: number;
+  biayaAktivasi: number;
+  perbulan: number;
+  linkFolderBerkas?: string;
+  keterangan?: string;
+  uploadItems?: CustomerUploadItem[];
+  deleteFileIds?: string[];
+};
+
+export type ContractUpdateInput = ContractCreateInput;
+
+export type ContractRenewInput = {
+  kategori: string;
+  namaLokasi: string;
+  core?: string;
+  sharingCore?: string;
+  periodeAwal: string;
+  periodeBerakhir?: string;
+  durasiKontrakBulan?: number;
+  noKontrak?: string;
+  nilaiKontrak: number;
+  biayaAktivasi: number;
+  perbulan: number;
+  keterangan?: string;
+  uploadItems?: CustomerUploadItem[];
+  deleteFileIds?: string[];
+};
+
+export type ContractUpgradeInput = ContractRenewInput & {
+  alasanPerubahan?: string;
 };

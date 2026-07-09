@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { AppsScriptHttpError, listContracts } from "@/lib/apps-script";
+import { RustBackendHttpError, listContractsFromRust } from "@/lib/rust-backend";
 import type { ApiError, ApiSuccess, ContractRecord } from "@/lib/customer-types";
 
 function toErrorResponse(error: unknown) {
-  if (error instanceof AppsScriptHttpError) {
+  if (error instanceof RustBackendHttpError) {
     return NextResponse.json<ApiError>(
       {
         success: false,
@@ -31,12 +31,13 @@ function toErrorResponse(error: unknown) {
 
 export async function GET() {
   try {
-    const result = await listContracts();
+    const result = await listContractsFromRust();
 
     return NextResponse.json<ApiSuccess<ContractRecord[]>>({
       success: true,
       data: result.data,
-      message: result.message,
+      meta: result.meta,
+      message: "Data kontrak berhasil dimuat.",
     });
   } catch (error) {
     return toErrorResponse(error);

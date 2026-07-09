@@ -111,9 +111,24 @@ export function CustomerFormDialog({
             <div className="fo-upload-head">
               <div>
                 <strong>Berkas Pelanggan</strong>
-                <span>Kelola file existing dan unggah file baru. Maksimal 10 MB per file.</span>
+                <span>Tautan folder Google Drive akan dibuat otomatis saat menyimpan berkas.</span>
               </div>
             </div>
+
+            {isEditing && (
+              <div style={{ marginTop: "16px", marginBottom: "24px" }}>
+                <label>
+                  <strong>Link Folder Berkas (Google Drive)</strong>
+                  <input
+                    type="url"
+                    value={form.linkFolderBerkas || ""}
+                    onChange={(event) => onFormChange({ ...form, linkFolderBerkas: event.target.value })}
+                    placeholder="https://drive.google.com/..."
+                    style={{ marginTop: "8px" }}
+                  />
+                </label>
+              </div>
+            )}
 
             {isEditing ? (
               <div className="fo-existing-files">
@@ -133,7 +148,7 @@ export function CustomerFormDialog({
                                 checked={isMarkedForDeletion}
                                 onChange={() => onToggleDeleteFile(file.fileId)}
                               />
-                              <span>Hapus saat simpan</span>
+                              <span>Hapus File</span>
                             </label>
                           </div>
                           <div className="fo-table-cell-text">
@@ -155,7 +170,7 @@ export function CustomerFormDialog({
             <div className="fo-upload-head">
               <div>
                 <strong>{isEditing ? "Upload Berkas Tambahan" : "Upload Berkas"}</strong>
-                <span>PDF, XLSX, DOCX, JPG, dan PNG.</span>
+                <span>Pilih file yang akan disimpan ke Google Drive Pelanggan.</span>
               </div>
               <button
                 className="fo-secondary-button"
@@ -222,7 +237,7 @@ export function CustomerFormDialog({
                 ))}
               </div>
             ) : (
-              <p className="fo-upload-empty">Belum ada berkas yang akan diunggah.</p>
+              <p className="fo-upload-empty">Belum ada berkas untuk di-upload.</p>
             )}
           </section>
 

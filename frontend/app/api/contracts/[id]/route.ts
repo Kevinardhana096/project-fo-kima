@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { AppsScriptHttpError, getContractById } from "@/lib/apps-script";
+import { RustBackendHttpError, getContractByIdFromRust } from "@/lib/rust-backend";
 import type { ApiError, ApiSuccess, ContractRecord } from "@/lib/customer-types";
 
 type RouteContext = {
@@ -10,7 +10,7 @@ type RouteContext = {
 };
 
 function toErrorResponse(error: unknown) {
-  if (error instanceof AppsScriptHttpError) {
+  if (error instanceof RustBackendHttpError) {
     return NextResponse.json<ApiError>(
       {
         success: false,
@@ -38,12 +38,12 @@ function toErrorResponse(error: unknown) {
 export async function GET(_: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const result = await getContractById(decodeURIComponent(id));
+    const result = await getContractByIdFromRust(decodeURIComponent(id));
 
     return NextResponse.json<ApiSuccess<ContractRecord>>({
       success: true,
-      data: result.data,
-      message: result.message,
+      data: result,
+      message: "Detail kontrak berhasil dimuat.",
     });
   } catch (error) {
     return toErrorResponse(error);

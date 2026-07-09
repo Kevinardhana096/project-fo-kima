@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 
 import { CustomerAdmin } from "./_components/admin/pelanggan/customer-admin";
-import { ContractsReadonly } from "./_components/admin/kontrak/contracts-readonly";
+import { ContractAdmin } from "./_components/admin/kontrak/contract-admin";
 
 function CustomersIcon() {
   return (
@@ -163,7 +163,7 @@ export default function Home() {
         ) : null}
         {visitedViews.kontrak ? (
           <div hidden={activeView !== "kontrak"} aria-hidden={activeView !== "kontrak"}>
-            <ContractsReadonly />
+            <ContractAdmin />
           </div>
         ) : null}
       </div>

@@ -2,6 +2,11 @@
 
 Dokumen ini merangkum alur bisnis inti pada sheet `Kontrak Lengkap` agar aturan operasional, implementasi Apps Script, dan pengembangan website tetap mengacu ke satu sumber yang ringkas.
 
+Catatan:
+
+- dokumen ini terutama menjelaskan aturan bisnis inti kontrak dan histori, bukan status teknis implementasi frontend/backend terbaru
+- mekanisme teknis lama yang spesifik ke spreadsheet atau Apps Script bisa berbeda dengan implementasi aktif di backend Rust/MySQL
+
 ## Prinsip Dasar
 
 - `1 baris = 1 kontrak`

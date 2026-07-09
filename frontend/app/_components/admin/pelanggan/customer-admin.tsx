@@ -1,28 +1,35 @@
 "use client";
 
-import { useDeferredValue, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { ApiResponse, CustomerCreateInput, CustomerFileRecord, CustomerRecord, CustomerUploadItem } from "@/lib/customer-types";
 
 import { CustomerFormDialog } from "./customer-form-dialog";
 import { CustomerTable } from "./customer-table";
 import type { UploadDraft } from "./types";
-import {
-  createUploadDraft,
-  emptyForm,
-  fileToBase64,
-  hasAllowedUploadFileType,
-  maxUploadSize,
-} from "./upload-utils";
+import { createUploadDraft, emptyForm } from "./upload-utils";
 
-let customersCache: CustomerRecord[] | null = null;
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 export function CustomerAdmin() {
-  const [customers, setCustomers] = useState<CustomerRecord[]>(() => customersCache || []);
+  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [search, setSearch] = useState("");
-  const deferredSearch = useDeferredValue(search);
+  const debouncedSearch = useDebounce(search, 500);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [form, setForm] = useState<CustomerCreateInput>(emptyForm);
-  const [isLoading, setIsLoading] = useState(() => !customersCache);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -37,35 +44,38 @@ export function CustomerAdmin() {
   const isEditing = Boolean(editingCustomerId);
 
   useEffect(() => {
-    if (customersCache) {
-      return;
+    async function loadCustomers() {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      try {
+        const query = new URLSearchParams();
+        query.set("page", String(page));
+        query.set("page_size", String(pageSize));
+        if (debouncedSearch) query.set("search", debouncedSearch);
+
+        const response = await fetch(`/api/customers?${query.toString()}`, {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as ApiResponse<CustomerRecord[]>;
+
+        if (!payload.success) {
+          throw new Error(payload.error.message);
+        }
+
+        setCustomers(payload.data);
+        if (payload.meta) {
+          setTotalRecords(payload.meta.total);
+        }
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Gagal memuat data pelanggan.");
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     void loadCustomers();
-  }, []);
-
-  async function loadCustomers() {
-    setIsLoading(true);
-    setErrorMessage("");
-
-    try {
-      const response = await fetch("/api/customers", {
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as ApiResponse<CustomerRecord[]>;
-
-      if (!payload.success) {
-        throw new Error(payload.error.message);
-      }
-
-      customersCache = payload.data;
-      setCustomers(payload.data);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Gagal memuat data pelanggan.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  }, [page, pageSize, debouncedSearch, refreshKey]);
 
   function resetForm() {
     setForm(emptyForm);
@@ -98,6 +108,7 @@ export function CustomerAdmin() {
       telepon: customer.telepon,
       email: customer.email,
       keterangan: customer.keterangan,
+      linkFolderBerkas: customer.berkasPelanggan || "",
     });
     setUploadDrafts([]);
     setExistingFiles(customer.existingFiles || []);
@@ -124,6 +135,7 @@ export function CustomerAdmin() {
         telepon: payload.data.telepon,
         email: payload.data.email,
         keterangan: payload.data.keterangan,
+        linkFolderBerkas: payload.data.berkasPelanggan || "",
       });
       setExistingFiles(payload.data.existingFiles || []);
     } catch (error) {
@@ -141,37 +153,28 @@ export function CustomerAdmin() {
       (item) => item.file || item.jenisBerkas || item.namaFile.trim(),
     );
 
-    for (const [index, item] of activeDrafts.entries()) {
-      const label = `Berkas #${index + 1}`;
-
-      if (!item.file) {
-        throw new Error(`${label}: pilih file terlebih dahulu.`);
+    for (const draft of activeDrafts) {
+      if (!draft.file || !draft.jenisBerkas || !draft.namaFile.trim()) {
+        throw new Error("Terdapat file draft yang belum lengkap isiannya.");
       }
 
-      if (!item.jenisBerkas) {
-        throw new Error(`${label}: jenis berkas wajib dipilih.`);
-      }
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]!);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(draft.file!);
+      });
 
-      if (!item.namaFile.trim()) {
-        throw new Error(`${label}: nama file wajib diisi.`);
-      }
-
-      if (!hasAllowedUploadFileType(item.file)) {
-        throw new Error(`${label}: tipe file tidak didukung. Gunakan PDF, XLSX, DOCX, JPG, atau PNG.`);
-      }
-
-      if (item.file.size > maxUploadSize) {
-        throw new Error(`${label}: ukuran file maksimal 10 MB.`);
-      }
-
-      setSaveStatus(`Membaca ${label}...`);
       uploadItems.push({
-        jenisBerkas: item.jenisBerkas,
-        namaFile: item.namaFile.trim(),
-        originalFileName: item.file.name,
-        mimeType: item.file.type,
-        base64Data: await fileToBase64(item.file),
-        size: item.file.size,
+        jenisBerkas: draft.jenisBerkas,
+        namaFile: draft.namaFile.trim(),
+        originalFileName: draft.file.name,
+        mimeType: draft.file.type || "application/octet-stream",
+        base64Data,
+        size: draft.file.size,
       });
     }
 
@@ -210,12 +213,12 @@ export function CustomerAdmin() {
         throw new Error(payload.error.message);
       }
 
-      customersCache = null;
       resetForm();
       setSuccessMessage(
         payload.message || (isEditing ? "Pelanggan berhasil diperbarui." : "Pelanggan berhasil ditambahkan."),
       );
-      await loadCustomers();
+      setPage(1);
+      setRefreshKey((current) => current + 1);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Gagal menyimpan data pelanggan.");
     } finally {
@@ -233,7 +236,7 @@ export function CustomerAdmin() {
   }
 
   async function handleDeleteCustomer(id: string, namaPelanggan: string) {
-    const confirmed = window.confirm(`Hapus pelanggan "${namaPelanggan}" dari spreadsheet?`);
+    const confirmed = window.confirm(`Hapus pelanggan "${namaPelanggan}" dari database?`);
     if (!confirmed) return;
 
     setDeletingId(id);
@@ -254,9 +257,9 @@ export function CustomerAdmin() {
         resetForm();
       }
 
-      customersCache = null;
       setSuccessMessage(payload.message || "Pelanggan berhasil dihapus.");
-      await loadCustomers();
+      setPage(1);
+      setRefreshKey((current) => current + 1);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Gagal menghapus pelanggan.");
     } finally {
@@ -264,19 +267,7 @@ export function CustomerAdmin() {
     }
   }
 
-  const filteredCustomers = customers.filter((customer) => {
-    const keyword = deferredSearch.trim().toLowerCase();
-    if (!keyword) return true;
 
-    return [
-      customer.kodePelanggan,
-      customer.namaPelanggan,
-      customer.pic,
-      customer.telepon,
-      customer.email,
-      customer.keterangan,
-    ].some((value) => String(value || "").toLowerCase().includes(keyword));
-  });
 
   return (
     <section id="pelanggan" className="fo-shell">
@@ -292,7 +283,7 @@ export function CustomerAdmin() {
         <div className="fo-stats">
           <article>
             <span>Total data pelanggan</span>
-            <strong>{customers.length}</strong>
+            <strong>{totalRecords}</strong>
           </article>
         </div>
       </section>
@@ -320,28 +311,56 @@ export function CustomerAdmin() {
         <div className="fo-search-wrap">
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
             placeholder="Cari kode, nama, PIC, telepon, email, atau keterangan"
           />
         </div>
 
         <div className="fo-list-toolbar">
-          <span>{filteredCustomers.length} pelanggan tampil</span>
+          <span>{customers.length} dari total {totalRecords} pelanggan tampil</span>
           <span>Source: master pelanggan</span>
         </div>
 
         <div className="fo-table-stage">
           {isLoading ? (
             <div className="fo-empty-state">Memuat data pelanggan...</div>
-          ) : filteredCustomers.length === 0 ? (
+          ) : customers.length === 0 ? (
             <div className="fo-empty-state">Belum ada data yang cocok.</div>
           ) : (
-            <CustomerTable
-              customers={filteredCustomers}
-              deletingId={deletingId}
-              onEdit={startEditCustomer}
-              onDelete={handleDeleteCustomer}
-            />
+            <>
+              <CustomerTable
+                customers={customers}
+                deletingId={deletingId}
+                onEdit={startEditCustomer}
+                onDelete={handleDeleteCustomer}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", padding: "0 16px", paddingBottom: "16px" }}>
+                <span style={{ fontSize: "14px", color: "var(--fo-color-gray-500)" }}>
+                  Halaman {page} dari {Math.max(1, Math.ceil(totalRecords / pageSize))}
+                </span>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button 
+                    type="button"
+                    className="fo-secondary-button" 
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1 || isLoading}
+                  >
+                    &laquo; Sebelumnya
+                  </button>
+                  <button 
+                    type="button"
+                    className="fo-secondary-button" 
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={page >= Math.ceil(totalRecords / pageSize) || isLoading}
+                  >
+                    Selanjutnya &raquo;
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </section>

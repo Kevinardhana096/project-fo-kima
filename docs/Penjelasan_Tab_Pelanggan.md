@@ -47,10 +47,10 @@ Tab ini dipakai untuk:
 - data bisa diisi langsung di tabel untuk kebutuhan awal
 - sistem UI disiapkan melalui menu `Pelanggan`
 - user dapat menekan `Tambah Pelanggan` untuk input lewat form
-- data yang sama juga dapat ditambah dari frontend `Next.js` melalui route handler internal dan API `Apps Script Web App`
+- data yang sama juga dapat ditambah dari frontend `Next.js` melalui route handler internal yang sekarang meneruskan request ke backend Rust
 - data pelanggan yang sudah ada juga dapat diedit dari frontend `Next.js`
-- form tambah pelanggan pada frontend `Next.js` juga sudah mendukung upload berkas
-- form edit pelanggan pada frontend `Next.js` juga sudah mendukung pengelolaan berkas
+- form tambah pelanggan pada frontend `Next.js` mendukung data inti pelanggan dan upload file ke Google Drive lewat backend Rust
+- upload/hapus file dari frontend `Next.js` sudah aktif untuk jalur backend Rust modul `Pelanggan`
 - setelah disimpan, sistem menambah 1 baris baru ke tab ini
 - kolom `Aksi` dapat dipakai untuk penghapusan data per baris bila diperlukan
 
@@ -67,22 +67,18 @@ Field yang diisi:
 
 Section berkas:
 
-- bisa upload banyak file
-- tiap file memiliki:
-  - `Jenis Berkas`
-  - `Upload File`
-  - `Nama File`
+- pada mode tambah frontend web, field `Link Folder Berkas (Google Drive)` tidak ditampilkan
+- saat tambah pelanggan baru, backend Rust akan membuat folder pelanggan di Google Drive jika link folder belum ada, lalu menyimpan URL folder itu ke kolom `link_folder_berkas` di MySQL
+- file upload dikirim sebagai base64 dari browser ke route `Next.js`, lalu diteruskan ke backend Rust untuk diunggah ke Google Drive
 
 Catatan:
 
-- upload berkas bersifat opsional
-- `Jenis Berkas` dapat berupa `Kontrak`, `BAK-PKS`, atau `Dokumen Lain`
-- nama file dapat ditentukan manual oleh user
+- link folder berkas bersifat opsional
 - form popup Google Sheets menyimpan data lewat fungsi Apps Script `savePelanggan(formData)`
 - alias `savePerusahaan(formData)` tetap dipertahankan untuk kompatibilitas pemanggilan lama
-- pada frontend `Next.js`, tipe file yang diterima saat ini adalah `PDF`, `XLSX`, `DOCX`, `JPG`, dan `PNG`
-- pada frontend `Next.js`, ukuran file dibatasi `10 MB` per file
-- setelah simpan, sistem membuat folder pelanggan dan mengisi kolom `Berkas Pelanggan` dengan link folder utama
+- pada frontend `Next.js`, jika user mengisi link folder manual saat edit, link itu disimpan ke kolom `link_folder_berkas` di MySQL
+- pembuatan folder otomatis Google Drive memakai `PELANGGAN_ROOT_FOLDER_ID` di backend Rust
+- jika konfigurasi Google Drive tidak valid atau akses service account kurang, proses simpan pelanggan baru dapat gagal
 - form memakai skeleton/loading awal saat popup dibuka agar user tidak melihat modal kosong
 - form memakai loading dan progress bar agar user tahu proses sedang berjalan
 - komponen loading ini sekarang bersifat global dan juga dipakai oleh form kontrak lokasi
@@ -96,32 +92,29 @@ Field edit mengikuti field utama pelanggan:
 - `PIC`
 - `Telepon`
 - `Email`
+- `Link Folder Berkas (Google Drive)`
 - `Keterangan`
 
-Section berkas pada mode edit sekarang mendukung:
+Section berkas pada mode edit frontend web saat ini:
 
-- menampilkan file existing dari folder pelanggan
-- membuka file existing lewat link langsung
-- menandai file existing untuk dihapus saat simpan
-- upload file baru tambahan ke subfolder sesuai `Jenis Berkas`
+- menyimpan perubahan link folder Google Drive manual
+- menampilkan file existing dari Google Drive
+- memproses upload file baru ke subfolder sesuai jenis berkas dengan nama file yang diisi user saat upload
+- memproses hapus file existing dengan memindahkan file ke trash Google Drive
 
 Catatan:
 
-- perubahan kode atau nama pelanggan akan ikut me-rename folder utama pelanggan di Google Drive
-- file existing baru benar-benar dihapus saat user menekan simpan
-- upload tambahan pada mode edit memakai validasi file yang sama dengan mode tambah
+- perubahan kode atau nama pelanggan belum me-rename folder Google Drive pada jalur backend Rust
+- edit pelanggan tidak me-rename file existing di Google Drive
+- hapus file existing dan upload tambahan memakai Google Drive REST API dari backend Rust
 
 ## Logika Otomatis
 
 - `No` diisi otomatis
-- sistem membuat folder utama pelanggan dengan format `Kode Pelanggan - Nama Pelanggan`
-- sistem membuat subfolder:
-  - `Kontrak`
-  - `BAK-PKS`
-  - `Dokumen Lain`
-- jika berkas diunggah, file masuk ke subfolder sesuai jenis berkas
-- kolom `Berkas Pelanggan` tetap mengarah ke folder utama pelanggan, bukan ke file kontrak tunggal
-- nama file upload saat ini memakai pola `Nama File Manual + ekstensi file asli`
+- pada frontend web, kolom `Berkas Pelanggan` berasal dari link folder manual atau folder otomatis yang disimpan di MySQL; untuk pelanggan baru dari web, link ini normalnya terisi otomatis setelah data berhasil disimpan
+- backend Rust membuat subfolder `Kontrak`, `BAK-PKS`, dan `Dokumen Lain`
+- upload file masuk ke subfolder sesuai `Jenis Berkas`
+- input `Nama File` pada form upload dipakai untuk nama file baru yang dibuat di Google Drive
 
 ## Aturan Edit Langsung di Tabel
 
@@ -134,26 +127,27 @@ Catatan:
 - kolom `Aksi` dapat berisi pilihan `Hapus`
 - saat user memilih `Hapus`, sistem akan membaca posisi kolom dari header `Aksi`, lalu menampilkan dialog konfirmasi sebelum menghapus baris
 - pendekatan ini dipakai agar fitur hapus tetap berjalan walau urutan kolom sheet berubah, ada kolom disisipkan, atau beberapa kolom disembunyikan
-- pada frontend `Next.js` V1, hapus pelanggan juga tersedia, tetapi masih terbatas pada penghapusan baris sheet dan belum membersihkan folder Drive pelanggan
+- pada frontend `Next.js`, hapus pelanggan sekarang mengikuti aturan backend Rust dan akan ditolak jika pelanggan masih memiliki data lokasi
 - fitur hapus dipakai untuk salah input, data duplikat, atau data uji coba
 - histori yang masih diperlukan sebaiknya tidak dihapus, tetapi dikelola melalui status data
 
-## Integrasi Web V1
+## Integrasi Web Saat Ini
 
 - frontend `Next.js` diposisikan sebagai tampilan kedua untuk data `Pelanggan`
-- browser tidak memanggil Apps Script langsung; request selalu masuk ke route handler `Next.js` terlebih dahulu
-- route handler `Next.js` meneruskan request ke `Apps Script Web App` dengan shared secret server-to-server
+- browser memanggil route handler `Next.js`
+- route handler `Next.js` meneruskan request ke backend Rust
 - resource web yang aktif pada fase ini mencakup:
   - list pelanggan
   - detail pelanggan
   - tambah pelanggan
   - edit pelanggan
   - hapus pelanggan
-- upload file pada frontend web sudah aktif untuk alur `Tambah Pelanggan`
-- upload file pada frontend web juga sudah aktif untuk alur `Edit Pelanggan`
-- alur edit pada frontend web juga sudah mendukung `existingFiles` dan `deleteFileIds`
+- simpan link folder berkas manual
+- upload/hapus file pelanggan pada frontend web sudah aktif pada jalur backend Rust
 - `Kode Pelanggan` diperlakukan sebagai field opsional, tetapi jika diisi harus unik dan tidak boleh duplikat dengan pelanggan lain
-- pada sisi Google Sheets popup, nama fungsi simpan utama yang aktif adalah `savePelanggan`, bukan `savePerusahaan`
+- popup Google Sheets lama masih memakai `savePelanggan`, tetapi itu bukan jalur aktif frontend web saat ini
+- sinkronisasi tab `Pelanggan` ke Google Sheets berjalan di background task backend setelah create/update/delete pelanggan
+- operasi Google Drive pelanggan pada submit masih berjalan sinkron di request utama; jika Google Drive lambat atau gagal, response API pelanggan ikut menunggu atau gagal
 
 ## Struktur Komponen Frontend
 

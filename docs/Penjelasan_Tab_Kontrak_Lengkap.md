@@ -13,8 +13,7 @@ Prinsip utamanya:
 Catatan penting:
 
 - dokumen ini membahas histori kontrak pada sheet `Kontrak Lengkap`
-- menu/form bernama `Perpanjangan` pada aplikasi adalah fitur milik sheet master pelanggan, bukan menu khusus sheet `Kontrak Lengkap`
-- jika nanti ada kebutuhan perpanjangan pada level kontrak lokasi, implementasinya tetap mengikuti prinsip `1 baris = 1 kontrak`, tetapi berbeda konteks dengan perpanjangan kerja sama pelanggan
+- pada frontend `Next.js`, menu `Kontrak Lengkap` sekarang sudah aktif untuk tambah, edit, perpanjang, upgrade, hapus, dan upload berkas melalui backend Rust
 
 ## Fungsi Tab
 
@@ -55,7 +54,7 @@ Tab ini dipakai untuk:
 
 - `ID Kontrak`: ID unik untuk menghubungkan kontrak dengan data billing
 - `Aksi`: kolom aksi tunggal untuk baris kontrak, misalnya `Edit` atau `Hapus`
-- `Kategori`: kategori kontrak/dokumen, saat ini dibatasi ke dropdown `BAK (Berita Acara Kesepakatan)` atau `Kontrak/Perjanjian Induk`
+- `Kategori`: kategori lokasi/area layanan yang dipilih dari frontend, saat ini `KIMA`, `KIMA ANEKA`, atau `LUAR KIMA`
 - `Kode Pelanggan`: kode pelanggan penyedia layanan
 - `Nama Pelanggan`: nama pelanggan penyedia layanan
 - `Lokasi`: nama customer/lokasi yang memakai layanan
@@ -75,9 +74,9 @@ Tab ini dipakai untuk:
 ## Aturan Input
 
 - data idealnya diisi lewat UI/form
-- tombol utama yang dipakai adalah `Tambah Kontrak Lokasi`
+- tombol utama yang dipakai pada frontend adalah `Tambah Kontrak`
 - setelah disimpan, sistem menambah 1 baris baru ke tab ini
-- sistem mencari baris data kosong berikutnya berdasarkan `ID Kontrak`, bukan sekadar `appendRow`, agar tidak terdorong jauh ke bawah oleh formula atau dropdown
+- pada jalur Rust/MySQL, data ditulis ke tabel internal `lokasi`, lalu tab Google Sheets `Kontrak Lengkap` disinkronkan ulang dari MySQL
 - user tidak perlu membuat kolom billing bulanan di sheet ini
 - detail billing tidak disimpan melebar di tab ini
 
@@ -120,7 +119,8 @@ Field periode dibuat fleksibel:
 - `Periode Awal` wajib diisi
 - user boleh mengisi `Durasi Kontrak`
 - user boleh langsung mengisi `Periode Berakhir`
-- sistem otomatis menghitung field pasangannya
+- frontend menampilkan perhitungan durasi berdasarkan `Periode Awal` dan `Periode Berakhir`
+- backend Rust tetap menjadi sumber validasi final untuk durasi, periode berakhir, status, dan nilai periode aktif
 
 Logikanya:
 
@@ -135,12 +135,14 @@ Logikanya:
 - formula disimpan di sel awal kolom masing-masing agar otomatis mengalir ke bawah
 - spreadsheet ini memakai locale Indonesia, jadi pemisah argumen formula harus `;`
 - tampilan `Durasi Kontrak` disarankan tetap bernilai angka, lalu diberi custom number format seperti `0 "bulan"`
+- pada frontend `Next.js`, durasi ditampilkan dari data backend dan tidak bergantung pada formula sheet
 
 ## Aturan Nilai dan Status
 
-- `Kategori` wajib mengikuti dropdown:
-  - `BAK (Berita Acara Kesepakatan)`
-  - `Kontrak/Perjanjian Induk`
+- `Kategori` wajib mengikuti dropdown frontend:
+  - `KIMA`
+  - `KIMA ANEKA`
+  - `LUAR KIMA`
 - user wajib memilih salah satu:
   - isi `Core`, atau
   - pilih `Sharing Core`
@@ -152,7 +154,7 @@ Logikanya:
   - `1/16`
   - `1/32`
 - `Nilai Kontrak` diinput manual oleh user
-- `Perbulan` diinput manual oleh user
+- `Perbulan` dapat diubah manual, tetapi frontend otomatis mengisi ulang dari `Nilai Kontrak / Durasi Kontrak` saat nilai kontrak atau durasi berubah
 - `Nilai Periode Aktif` dihitung otomatis dari `Perbulan x Durasi Kontrak`
 - `Status Kontrak` tidak diinput manual pada form tambah kontrak lokasi
 - `Status Kontrak` dihitung otomatis saat data disimpan dan direkonsiliasi ulang oleh sistem
@@ -184,22 +186,19 @@ Catatan:
 - Apps Script tidak lagi membuat atau memaksa isi dropdown `Aksi` pada tab ini
 - menu `Lokasi > Reset Validasi Aksi Kontrak` hanya membantu membersihkan validasi lama yang pernah dibuat script
 - nilai yang diharapkan saat ini adalah `Edit`, `Perpanjang`, `Di-upgrade`, dan `Hapus`
+- pada frontend `Next.js`, aksi tersedia sebagai tombol langsung di tabel: `Edit`, `Perpanjang`, `Upgrade`, dan `Hapus`
 
-## Trigger Aksi
+## Aksi Frontend Web
 
-- aksi `Edit` dan `Hapus` pada `Kontrak Lengkap` tidak memakai simple trigger biasa
-- tab ini memakai installable trigger karena modal `Edit` butuh izin `Ui.showModalDialog`
-- trigger diaktifkan dari menu `Lokasi > Aktifkan Trigger Aksi Kontrak`
-- setelah trigger aktif:
-  - memilih `Edit` akan membuka modal edit kontrak lokasi
-  - memilih `Perpanjang` akan membuka modal perpanjangan kontrak lokasi
-  - memilih `Di-upgrade` akan membuka modal upgrade kontrak lokasi
-  - memilih `Hapus` akan meminta konfirmasi lalu menghapus baris dan aset Drive terkait
-- setelah aksi diproses, isi sel `Aksi` dikosongkan kembali oleh sistem
+- `Edit`: memperbarui baris kontrak yang sama untuk koreksi data
+- `Perpanjang`: membuat baris kontrak baru dengan `previous_lokasi_id` mengarah ke kontrak lama
+- `Upgrade`: membuat baris kontrak baru, memotong periode kontrak lama, dan mewajibkan `Alasan Perubahan`
+- `Hapus`: menghapus kontrak jika belum memiliki histori turunan
+- setiap mutasi sukses memicu sinkronisasi background ke tab Google Sheets `Kontrak Lengkap`
 
 ## Folder Drive Kontrak
 
-- setiap kontrak lokasi disimpan di root folder lokasi
+- setiap kontrak lokasi disimpan di root folder yang diatur oleh `LOKASI_ROOT_FOLDER_ID`
 - struktur terbaru folder adalah:
   - `Nama Lokasi`
   - `Nama Lokasi/04-12-2025 s.d. 03-12-2026`
@@ -207,28 +206,26 @@ Catatan:
   - `Nama Lokasi/04-12-2025 s.d. 03-12-2026/BAK-PKS`
   - `Nama Lokasi/04-12-2025 s.d. 03-12-2026/Dokumen Lain`
 - kolom `Berkas` mengarah ke folder periode kontrak, bukan ke folder lokasi utama
-- saat kontrak lama dengan struktur folder legacy diedit, sistem akan memigrasikan isi folder lama ke struktur folder periode baru
-- kontrak hasil `Perpanjangan` dan `Di-upgrade` selalu membuat folder periode baru, tetapi tetap berada di bawah folder `Lokasi` yang sama
+- folder periode dibuat otomatis saat upload berkas kontrak membutuhkan folder tujuan dan `link_folder_berkas` belum ada
+- URL folder periode disimpan ke kolom `link_folder_berkas`
+- kontrak hasil `Perpanjangan` dan `Di-upgrade` dapat memakai folder periode baru bila upload berkas dilakukan dan kontrak sumber belum memiliki link folder
 
 ## Edit Kontrak Lokasi
 
-- modal `Edit Kontrak Lokasi` dibuka dari kolom `Aksi`
+- modal `Edit Kontrak` dibuka dari tombol `Edit` di frontend web
 - modal edit mendukung:
   - edit data kontrak utama
   - melihat daftar file existing
   - menandai file existing untuk dihapus
   - upload file baru dengan jenis berkas dan nama file
-- jika periode atau lokasi berubah, sistem akan menyesuaikan folder target kontrak
-- jika file kontrak aktif berubah, hyperlink pada kolom `No Kontrak` ikut diperbarui
+- file baru dikirim dari browser sebagai base64 ke route `Next.js`, lalu diteruskan ke backend Rust
+- file existing yang ditandai hapus dipindahkan ke trash Google Drive saat simpan
 
 ## Perpanjangan Kontrak Lokasi
 
-- perpanjangan dibuat dari kontrak sumber yang dipilih dari kolom `Aksi`
+- perpanjangan dibuat dari kontrak sumber yang dipilih dari tombol `Perpanjang`
 - hanya kontrak terbaru pada grup `Pelanggan + Lokasi` yang sama yang boleh diperpanjang
-- kontrak baru disisipkan ke grup `Pelanggan + Lokasi` yang sama, bukan ditaruh di paling bawah sheet
 - kontrak baru menyimpan `ID Kontrak Sebelumnya`
-- form perpanjangan menampilkan `Kategori Lama`, `Core Lama`, dan `Sharing Core Lama`
-- `Kategori Baru` default mengikuti kontrak sumber, tetapi tetap bisa diubah
 - jika kontrak lama masih berjalan dan kontrak baru mulai di masa depan:
   - kontrak lama tetap `Aktif`
   - kontrak baru `Belum Beroperasi`
@@ -242,9 +239,7 @@ Catatan:
 - upgrade dipakai untuk perubahan paket di tengah periode kontrak yang masih `Aktif`
 - upgrade dibuat sebagai kontrak baru, bukan edit kontrak lama
 - hanya kontrak aktif terbaru pada grup `Pelanggan + Lokasi` yang sama yang boleh di-upgrade
-- `Periode Awal` kontrak baru default ke tanggal hari ini, tetapi tetap bisa diedit
-- form upgrade menampilkan `Kategori Lama`, `Core Lama`, dan `Sharing Core Lama`
-- `Kategori Baru` default mengikuti kontrak sumber, tetapi tetap bisa diubah
+- form upgrade mewajibkan `Alasan Perubahan`
 - saat upgrade disimpan:
   - kontrak lama dipotong sampai sehari sebelum `Periode Awal` kontrak baru
   - `Nilai Kontrak` lama ikut disesuaikan berdasarkan periode yang tersisa
@@ -255,12 +250,12 @@ Catatan:
 
 ## Aturan Hapus Data
 
-- `Hapus` pada kolom `Aksi` ditujukan untuk data salah input, duplikat, atau data uji
+- `Hapus` ditujukan untuk data salah input, duplikat, atau data uji
 - saat user konfirmasi hapus, sistem akan:
-  - menghapus baris kontrak dari sheet
-  - menghapus folder periode kontrak beserta isi berkasnya di Drive
-  - membersihkan folder lokasi jika setelah itu sudah kosong
-- folder tidak akan dihapus jika link folder tersebut masih dipakai baris kontrak lain
+  - menghapus record kontrak dari MySQL jika belum memiliki histori turunan
+  - memindahkan folder periode kontrak ke trash Google Drive jika folder tersebut tidak dipakai record kontrak lain
+  - menjalankan sinkronisasi background ke tab Google Sheets `Kontrak Lengkap`
+- folder lokasi induk tidak otomatis dibersihkan bila kosong
 
 ## Hubungan dengan Billing
 
@@ -299,6 +294,7 @@ Jadi:
   - `Upgrade Kontrak Lokasi`
 - pada frontend `Next.js`, menu `Pelanggan` dan `Kontrak Lengkap` sekarang dipertahankan tetap mounted setelah pertama kali dibuka
 - frontend juga memakai cache memory ringan untuk list `Pelanggan` dan `Kontrak Lengkap` agar perpindahan menu tidak memicu loading penuh berulang
+- frontend `Kontrak Lengkap` sudah memakai modal tambah/edit/perpanjang/upgrade dan tabel aksi aktif, bukan lagi tampilan read-only
 
 ## Hasil yang Diharapkan
 
